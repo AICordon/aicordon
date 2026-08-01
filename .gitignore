@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+.venv/
+dist/
+build/
+*.egg-info/
+
+# The injection bank and any datasets NEVER leave this repository: the bank is both a resource of the
+# project and its only honest held-out test. This is not a precaution "just in case" but insurance
+# against an accidental `git add` — memory is not something to rely on here.
+datasets/
+data/pools/
+*.jsonl
+
+# Исходники базы наружу НЕ ИДУТ: словари слотов и правило в JSON — это одновременно рецепт базы и
+# инструкция по её обходу. Требования читаемости правил у продукта нет; в выпуск идёт только
+# собранная база одним файлом (`src/aicordon/picket/data/*.bin`). Живут исходники в exp40/base.
+src/aicordon/picket/data/slots/
+src/aicordon/picket/data/*.json
+
+# Исследовательские записи живут в репозитории исследований и НАРУЖУ НЕ ИДУТ. Строка появилась не
+# из осторожности: `cat >> RESULTS.md` из этого каталога однажды уже положил сюда 51 строку русской
+# прозы про замеры. Пусть ошибка ловится git'ом, а не глазами.
+RESULTS.md
+HANDOFF.md
+PLAN*.md

@@ -1,0 +1,53 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aicordon"
+version = "0.1.0"
+description = "Picket: a fast local prefilter for indirect prompt injection — a rule, no model, no network"
+readme = "README.md"
+requires-python = ">=3.10"
+# ONE license for the whole package, rule base included (decided 2026-07-31, canonical wording in
+# the product doc). Apache-2.0 rather than MIT for the explicit patent grant and the trademark
+# clause, and because corporate legal departments wave it through. Splitting the base out under
+# CC BY was considered and rejected: it signals "the rules are data" without protecting anything,
+# while tripping license scanners and complicating package metadata — friction aimed at exactly the
+# audience Apache was chosen for. What monetises is access to the update stream, not the license.
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+keywords = [
+    "prompt-injection", "indirect-prompt-injection", "ipi", "llm-security",
+    "ai-security", "guardrails", "detector",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+]
+# Picket has no dependencies and must never grow any: the rule runs on the standard library. That is
+# not asceticism but a property of the product — a detector with no model, no network, and no wheels
+# to install.
+dependencies = []
+
+[project.urls]
+Homepage = "https://ai-cordon.com"
+Source = "https://github.com/aicordon/aicordon"
+
+[project.scripts]
+aicordon = "aicordon.cli.umbrella:main"
+
+[tool.hatch.build.targets.wheel]
+# One distribution, one top-level name. The products are subpackages (`aicordon.picket`) rather than
+# flat imports: the flat name is taken on PyPI by an unrelated project — a rules tool for AI coding
+# agents, near enough to end up installed alongside ours, at which point one import name would mean
+# two different libraries.
+packages = ["src/aicordon"]
+
+# `aicordon.intent` is NOT shipped while the API behind it does not exist. The code stays in the
+# repository — the contract is what keeps the two products identical — but a stub in a release reads
+# as "get a key and it works", and no key would make it work. The umbrella treats an absent product
+# as a normal state, so nothing else has to change.
+exclude = ["/src/aicordon/intent"]
