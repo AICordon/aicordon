@@ -1,4 +1,4 @@
-"""exp40 L0a — input hygiene with an offset map back to the original text.
+"""L0a — input hygiene with an offset map back to the original text.
 
 Two consumers, one definition of "the text": the prefilter matches literals on the normalised form,
 and the detector is proposed to read the same form (root TODO.md). If the two ever normalise

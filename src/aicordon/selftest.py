@@ -1,4 +1,4 @@
-"""Self-test of the shell: the readiness criteria of SPEC §10, one test each.
+"""Self-test of the shell: one test per readiness criterion.
 
 What is checked is not "does it work" but exactly those properties that are easy to lose while
 editing and hard to notice by eye:

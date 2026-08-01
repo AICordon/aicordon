@@ -21,7 +21,7 @@ against one works with the other — that is an architectural requirement, not a
 
 What the package does NOT claim: no findings does not mean no injection. The rule sees on the
 order of a quarter of the injections in its own bank (`aicordon picket coverage`), which is why the API has no
-`is_safe` field and never will — believing such a field in reverse would be a mistake (SPEC §2).
+`is_safe` field and never will — believing such a field in reverse would be a mistake.
 """
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ __all__ = [
 # imported twice, because the package `__init__` pulled in the very module being run as `__main__`.
 #
 # What this does NOT save: the shell still probes every product for readiness (a product that did
-# not take part must be named with a reason, SPEC §2), and probing builds the detector.
+# not take part must be named with a reason), and probing builds the detector.
 #
 # The public names are unchanged — `from aicordon.picket import Detector` and `picket.load()` work as before.
 

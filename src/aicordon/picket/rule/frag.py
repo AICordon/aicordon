@@ -1,4 +1,4 @@
-"""exp40 — fragment parsing primitives: tokens, entity terms, surroundings, edges.
+"""Fragment parsing primitives: tokens, entity terms, surroundings, edges.
 
 Split out of `termstat.py` so that collecting the statistics and checking the rule run through ONE
 piece of code. A copy here would be the worst kind of mistake: the rule would be measured with
@@ -147,7 +147,7 @@ def collect(low: str, toks, hits, lo_limit: int, hi_limit: int, src):
     # Only the tokens that land in the counter carry a language of their own.
     # A paragraph bounds the window: the next paragraph is already another element of the page, not
     # the surroundings of a term (the same argument that forbids a fragment to cross a line break,
-    # RESULTS.md).
+    # measured).
     breaks = [m.start() for m in PARA.finditer(low)]
     starts = [t[0] for t in toks]
     # The mask "this token belongs to some term" is computed ONCE per document. It used to walk

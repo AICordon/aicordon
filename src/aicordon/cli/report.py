@@ -16,7 +16,7 @@ to feed to the next step.
 
 The directory says nothing about the documents that are not in it. At 32.4% recall "not collected"
 means "nothing fired", the same thing the exit code means, and never "checked and found harmless"
-(SPEC §2). The word quarantine is avoided for that reason and not out of squeamishness: a quarantine
+. The word quarantine is avoided for that reason and not out of squeamishness: a quarantine
 implies the rest of the ward is healthy.
 
 Two rules the implementation follows literally:

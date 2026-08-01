@@ -27,7 +27,7 @@ CYAN = "\033[36m"
 SEV_COLOR = {Severity.HIGH: RED, Severity.MEDIUM: YELLOW, Severity.LOW: CYAN}
 SEV_MARK = {Severity.HIGH: "!!", Severity.MEDIUM: " !", Severity.LOW: " ·"}
 
-# Words the detector has no right to describe its own result with (SPEC §2). Checked by a test over
+# Words the detector has no right to describe its own result with. Checked by a test over
 # the whole output rather than by eye: at 32.4% recall "clean" and "safe" would be untrue.
 #
 # Whole words, not stems, and that is not pedantry about form. "Clean corpus" is an accepted
@@ -83,7 +83,7 @@ def banner(st: Style, product, detector, ready: bool, reason: str = "", selectio
 
     The point is not decoration: this is where the user sees ONCE what is about to check their
     files. An engine that dropped out for a missing key or a broken base must be visible here, or an
-    incomplete check reads as a complete one (SPEC §2).
+    incomplete check reads as a complete one.
     """
     lines = []
     # Company first, product second — the user installed `aicordon`, and the product is what it is
@@ -103,7 +103,7 @@ def banner(st: Style, product, detector, ready: bool, reason: str = "", selectio
     lines.append(f"  {mark} {getattr(detector, 'name', product.key):<10} {st(base, DIM)}"
                  f"{tail}{st('   ' + note, YELLOW) if note else ''}")
     # Products that did NOT take part in the check, and why. Without this line an incomplete check
-    # reads as a complete one — the same ban that applies to the verdict "clean" (SPEC §2).
+    # reads as a complete one — the same ban that applies to the verdict "clean".
     for title, why in getattr(selection, "others", []) or []:
         lines.append(st(f"  ○ {title:<10} {why}", DIM))
     return "\n".join(lines) + "\n"

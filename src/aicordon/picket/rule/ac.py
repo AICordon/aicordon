@@ -1,4 +1,4 @@
-"""exp40 L1 — Aho-Corasick over the literal dictionary. Standard library only, by decision.
+"""Aho-Corasick over the literal dictionary. Standard library only, by decision.
 
 One pass over the text finds every phrase of the dictionary at once, in time proportional to the
 text length plus the number of matches and INDEPENDENT of how many phrases are in the dictionary.

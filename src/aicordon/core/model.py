@@ -84,7 +84,7 @@ class Report:
 
     The field is called `flagged`, not `is_safe`, on purpose. A detector can only assert that it
     found something; the opposite claim would be untrue at 32.4% recall, and a field you can believe
-    in reverse would build that untruth straight into the API (SPEC §2).
+    in reverse would build that untruth straight into the API.
     """
 
     doc_id: str

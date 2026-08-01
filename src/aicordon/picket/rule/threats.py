@@ -1,7 +1,7 @@
-"""exp40 — threat names and severities: derived from the SLOTS of a rule and written into the base.
+"""Threat names and severities: derived from the SLOTS of a rule and written into the base.
 
 Why a module of its own. Until now the threat name was assembled by a heuristic inside the CLI
-engine, which broke SPEC §5: the name must be derivable from the rule artifact, otherwise `explain`
+engine. The name must be derivable from the base itself, otherwise `explain`
 and `scan` drift apart at the first change of base, and a name printed yesterday cannot be matched
 against the rule of today.
 
@@ -12,7 +12,7 @@ What lives here:
     assign()     naming that keeps previous names by fingerprint
     annotate()   writing `threat`/`severity` into the base (the working point is not touched)
 
-Name stability across base versions (SPEC §5) rests on the fingerprint, not on ordering: a rule that
+Name stability across base versions rests on the fingerprint, not on ordering: a rule that
 survives reselection is recognised by its set of edges and keeps its variant letter; a rule that
 drops out takes its letter with it, and the letter is not reused.
 
@@ -38,7 +38,7 @@ HIGH, MEDIUM, LOW = "high", "medium", "low"
 # say); the name comes from the first technique that matches, so what stands at the top is what says
 # more about the rule: "send it outside" is more specific than "a new block started".
 #
-# Severity is a property of the TECHNIQUE, not of how strongly the rule fired (SPEC §6): the rule has
+# Severity is a property of the TECHNIQUE, not of how strongly the rule fired: the rule has
 # no continuous score, there is nothing to grade with, and a scale must not be drawn out of nothing.
 TECHNIQUES: list[tuple[str, str, str, tuple[str, ...], str]] = [
     # family      technique      severity  defining slots                      description

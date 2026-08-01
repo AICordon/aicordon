@@ -7,7 +7,7 @@ implements.
 Threat names and severities come FROM THE BASE (the `threat`/`severity` fields written by
 `threats.py`), they are not reconstructed here by heuristics. Otherwise `explain` and `scan` would
 drift apart at the first change of base, and a threat name from yesterday's report could not be
-matched against today's rule (SPEC §5).
+matched against today's rule.
 """
 from __future__ import annotations
 
@@ -134,7 +134,7 @@ class Detector(BaseDetector):
                     span=tuple(fired["span"]) if fired["span"][0] >= 0 else doc_span,
                     # The label is the THREAT NAME, not the pair of slots that matched: the slots
                     # are the base, and the base does not travel through the API any more than it
-                    # travels through `explain` (SPEC §5).
+                    # travels through `explain`.
                     evidence=[Evidence(label=rule.get("threat", "IPI/Generic.Relation.A"),
                                        span=tuple(e["span"]) if e["span"][0] >= 0 else None,
                                        quote=e["text"]) for e in fired["edges"]],

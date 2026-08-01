@@ -21,8 +21,8 @@ class EngineUnavailable(Exception):
     shell can present the hint differently from the reason (as a link, for instance).
 
     A dedicated exception rather than an empty result: silence reads to embedding code as "nothing
-    found", which turns an unavailable detector into a verdict. That is exactly the mistake SPEC §2
-    forbids when it bans the verdict "clean".
+    found", which turns an unavailable detector into a verdict — the same mistake as the banned
+    verdict "clean", only quieter.
     """
 
     def __init__(self, reason: str, hint: str = "") -> None:

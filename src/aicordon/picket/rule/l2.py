@@ -1,4 +1,4 @@
-"""exp40 L2 — bounded-gap DFA over the class stream: literals -> classes -> fragments.
+"""Bounded-gap DFA over the class stream: literals -> classes -> fragments.
 
 L1 (`ac.py`) turns text into a sparse stream of (offset, slot) hits. This layer recognises the
 CONSTRUCTIONS those hits form: an ordered sequence of slots where at most N ordinary words may sit

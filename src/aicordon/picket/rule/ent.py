@@ -1,4 +1,4 @@
-"""exp40 — the entity layer: addresses, links, domains, accounts, paths, keys — WITH A VALUE.
+"""The entity layer: addresses, links, domains, accounts, paths, keys — WITH A VALUE.
 
 Why a layer rather than literals. Entities were encoded as fragments the automaton can match
 (`@gmail.com`, `https://`, `.com/`), which works, but the coverage is accidental: an address on a

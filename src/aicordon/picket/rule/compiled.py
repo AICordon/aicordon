@@ -4,7 +4,8 @@ Why it exists. For a CLI called on one file, load time IS the run time: parsing 
 ~1.9 ms while assembling the engine from the 16 dictionaries costs ~82 ms, and 45 of those are
 spent rebuilding a trie that comes out identical every time. Shipping the built trie removes that
 work: 12 ms instead of 82, with verdicts identical to the byte on the measurement set
-(RESULTS §18 of exp40 — six storage formats compared by load time, size AND verdict equality).
+(six storage formats were compared by load time, size AND verdict equality before this one was
+chosen).
 
 What is stored: `goto`/`fail`/`out` of the Aho-Corasick automaton, the names of the 136 slots, the
 whole rule spec (rules, threat names, measured numbers, caveats), and a stamp of what it was built

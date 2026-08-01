@@ -226,16 +226,21 @@ def summarize(rows: list[dict], load_ms: float, engine: str, version: str) -> di
 def lines(s: dict) -> list[str]:
     """The same numbers for a terminal, in the order they answer questions."""
     cm = s["cost_model"]
-    pm = (f" ± {cm['per_1000_chars_pm']}" if cm["per_1000_chars_pm"] is not None else "")
-    pmd = (f" ± {cm['per_document_pm']}" if cm["per_document_pm"] is not None else "")
+    fitted = cm["per_1000_chars_pm"] is not None
     d = s["ms_per_doc"]
     out = [
         f"  documents {s['documents']}, median length {s['size']['median']} characters "
         f"(P10-P90 {s['size']['p10']}-{s['size']['p90']})",
         f"  per document   median {d['median']} ms   P10-P90 {d['p10']}-{d['p90']}   "
         f"P99 {d['p99']}   max {d['max']}",
-        f"  cost model     {cm['per_1000_chars_ms']}{pm} ms per 1000 characters, "
-        f"plus {cm['per_document_ms']}{pmd} ms per document ({cm['confidence']})",
+        # The model is printed only when it was actually fitted. On a handful of documents the
+        # numbers still come out, and printing them with a "(95%)" beside them would dress a guess
+        # up as a measurement — the one thing this command exists not to do.
+        (f"  cost model     {cm['per_1000_chars_ms']} ± {cm['per_1000_chars_pm']} ms per 1000 "
+         f"characters, plus {cm['per_document_ms']} ± {cm['per_document_pm']} ms per document "
+         f"({cm['confidence']})") if fitted else
+        f"  cost model     not fitted: {s['documents']} document(s) is too few to separate the "
+        f"per-character cost from the per-document one",
         f"  throughput     {s['throughput']['documents_per_s']} documents/s, "
         f"{s['throughput']['chars_per_s']} characters/s",
         f"  startup        {s['startup_ms']} ms, once per process",
