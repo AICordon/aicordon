@@ -8,6 +8,11 @@ version = "0.1.0"
 description = "Picket: a fast local prefilter for indirect prompt injection — a rule, no model, no network"
 readme = "README.md"
 requires-python = ">=3.10"
+# Автор — человек: юридического лица пока нет, а патентный грант Apache 2.0 выдаёт
+# правообладатель, и несуществующее лицо выдать его не может. «AI Cordon» остаётся именем
+# продукта в тексте и в выводе инструмента. Появится компания — права передаются, поле
+# меняется вместе с копирайтом в NOTICE.
+authors = [{ name = "Mikhail Gribov", email = "mihail.gribov.rs@gmail.com" }]
 # ONE license for the whole package, rule base included (decided 2026-07-31, canonical wording in
 # the product doc). Apache-2.0 rather than MIT for the explicit patent grant and the trademark
 # clause, and because corporate legal departments wave it through. Splitting the base out under
@@ -34,7 +39,7 @@ dependencies = []
 
 [project.urls]
 Homepage = "https://ai-cordon.com"
-Source = "https://github.com/aicordon/aicordon"
+Source = "https://github.com/AICordon/aicordon"
 
 [project.scripts]
 aicordon = "aicordon.cli.umbrella:main"
@@ -50,4 +55,9 @@ packages = ["src/aicordon"]
 # repository — the contract is what keeps the two products identical — but a stub in a release reads
 # as "get a key and it works", and no key would make it work. The umbrella treats an absent product
 # as a normal state, so nothing else has to change.
+exclude = ["/src/aicordon/intent"]
+
+[tool.hatch.build.targets.sdist]
+# Тот же список, что и для колеса: `exclude` в цели `wheel` на архив исходников не действует, и
+# `intent` уезжал в него незамеченным — при том что решение было его не поставлять.
 exclude = ["/src/aicordon/intent"]
