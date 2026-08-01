@@ -35,7 +35,10 @@ class Document:
 class Evidence:
     """What exactly the engine bases a finding on."""
 
-    label: str                       # name of the construction that matched
+    # WHAT this piece of evidence supports, in the engine's public vocabulary — a threat name, not
+    # the internals that produced it. The shared model has no notion of rules, slots or weights: a
+    # detector that puts its machinery here would publish it through every consumer of the API.
+    label: str
     span: tuple[int, int] | None = None
     quote: str = ""
 
@@ -120,6 +123,37 @@ class Report:
                 "span": list(self.span) if self.span else None,
                 "findings": [f.to_json() for f in self.findings]}
 
+    @classmethod
+    def from_json(cls, d: dict) -> "Report":
+        """The inverse of `to_json`. Exists because a report crosses process boundaries.
+
+        Anything embedding this detector — a queue worker, a framework node, a CI step writing
+        NDJSON for a later stage — has to be able to read a report back and get the same object,
+        not a dictionary that merely looks like one. `flagged`, `severity` and `threats` are
+        derived, so they are ignored on the way in and recomputed from the findings; that way a
+        hand-edited file cannot produce a report whose verdict disagrees with its own findings.
+        """
+        findings = [
+            Finding(
+                doc_id=f.get("doc_id", d.get("doc_id", "")),
+                engine=f.get("engine", d.get("engine", "")),
+                engine_version=f.get("engine_version", d.get("engine_version", "")),
+                threat=f["threat"],
+                severity=f.get("severity", Severity.MEDIUM),
+                span=tuple(f["span"]) if f.get("span") else None,
+                evidence=[Evidence(label=e.get("label", ""),
+                                   span=tuple(e["span"]) if e.get("span") else None,
+                                   quote=e.get("quote", ""))
+                          for e in f.get("evidence", [])],
+                also=list(f.get("also", [])),
+                extra=dict(f.get("extra", {})),
+            )
+            for f in d.get("findings", [])
+        ]
+        return cls(doc_id=d.get("doc_id", ""), engine=d.get("engine", ""),
+                   engine_version=d.get("engine_version", ""), findings=findings,
+                   span=tuple(d["span"]) if d.get("span") else None)
+
 
 def _headline(group: list[Finding]) -> Finding:
     """Which of the merged findings gives the block its name.
@@ -146,8 +180,8 @@ def merge_overlapping(findings: list[Finding]) -> list[Finding]:
 
     Merged: the span is the union, the severity is the highest, the evidence is concatenated and
     deduplicated, and every technique recognised at that place is kept — the headline one in
-    `threat`, the rest in `also`. Nothing is thrown away; `extra["rules"]` keeps the numbers of the
-    rules that fired, which is what the verbose mode prints.
+    `threat`, the rest in `also`. Nothing is thrown away; `extra["refs"]` keeps whatever the engine
+    uses to refer to its own findings, and the report prints them without knowing what they mean.
 
     Findings without a span are not merged: there is no evidence that they share a location.
     """
@@ -178,7 +212,7 @@ def merge_overlapping(findings: list[Finding]) -> list[Finding]:
                     seen_ev.add(key)
                     evidence.append(e)
         extra = dict(head.extra)
-        extra["rules"] = sorted({r for f in group for r in f.extra.get("rules", [])})
+        extra["refs"] = sorted({r for f in group for r in f.extra.get("refs", [])})
         extra["merged"] = len(group)
         out.append(Finding(
             doc_id=head.doc_id, engine=head.engine, engine_version=head.engine_version,

@@ -212,12 +212,12 @@ def finding_block(st: Style, f, verbose: bool = False, text: str = "") -> list[s
 
     if also:
         out.append(f"       {st('also: ' + ', '.join(also), DIM)}")
-    rules = f.extra.get("rules") or []
-    if rules:
-        # The numbers of the rules, not what they consist of. A number is enough to say "this one
-        # fired" in a bug report; the terms and distances behind it are the base itself, and the
-        # base is not something the tool hands out — see the note in `threats.catalog`.
-        out.append(f"       {st('rules: ' + ', '.join('#' + str(r) for r in rules), DIM)}")
+    refs = f.extra.get("refs") or []
+    if refs:
+        # Whatever the engine uses to refer to its own finding — this layer does not know and must
+        # not know what is behind it. For the rule that is a number, enough to say "this one fired"
+        # in a bug report; what the number stands for is the base, and the base is not handed out.
+        out.append(f"       {st('refs: ' + ', '.join('#' + str(r) for r in refs), DIM)}")
     return out
 
 

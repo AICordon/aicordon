@@ -113,6 +113,33 @@ class BaseDetector:
         docs = (Document(id=str(i), text=t) for i, t in enumerate(texts))
         return self.reports(docs)
 
+    # --- the same, for code that runs in an event loop ------------------------------------------
+    #
+    # The check is CPU work, and CPU work in a coroutine blocks the loop that awaits it. One
+    # document costs a couple of milliseconds and would pass unnoticed; a batch of ten thousand
+    # stalls everything else in the process for half a minute. Both frameworks this package is
+    # meant to plug into are async-first, so the offload belongs HERE — written once, identical for
+    # every engine — rather than in each adapter, where the versions would drift.
+    #
+    # `to_thread` and not a process: the detector holds no per-call state and was measured
+    # thread-safe, so several checks can genuinely run at once — and for the remote engine the wait
+    # is the network anyway.
+
+    async def acheck(self, text: str, doc_id: str = "text") -> Report:
+        """`check` without blocking the event loop."""
+        import asyncio
+        return await asyncio.to_thread(self.check, text, doc_id)
+
+    async def acheck_all(self, texts: Iterable[str]) -> list[Report]:
+        """`check_all` without blocking the event loop; the result is a list, order preserved.
+
+        A list rather than an async iterator on purpose: the reports are produced in one offloaded
+        pass, and pretending they arrive one by one would suggest a streaming guarantee the engine
+        does not give.
+        """
+        import asyncio
+        return await asyncio.to_thread(lambda: list(self.check_all(texts)))
+
 
 def _chunks(items: Iterable, size: int) -> Iterator[list]:
     """Slices a stream into batches without materialising the input — readiness criterion §10.6."""

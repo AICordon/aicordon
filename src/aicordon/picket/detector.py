@@ -132,14 +132,16 @@ class Detector(BaseDetector):
                     threat=rule.get("threat", "IPI/Generic.Relation.A"),
                     severity=rule.get("severity", Severity.MEDIUM),
                     span=tuple(fired["span"]) if fired["span"][0] >= 0 else doc_span,
-                    evidence=[Evidence(label=e["edge"],
+                    # The label is the THREAT NAME, not the pair of slots that matched: the slots
+                    # are the base, and the base does not travel through the API any more than it
+                    # travels through `explain` (SPEC §5).
+                    evidence=[Evidence(label=rule.get("threat", "IPI/Generic.Relation.A"),
                                        span=tuple(e["span"]) if e["span"][0] >= 0 else None,
                                        quote=e["text"]) for e in fired["edges"]],
                     # `rank` lets the shared merging pick the headline technique, `rules` carries
                     # the number of the rule in the base — what the verbose mode prints.
-                    extra={"kind": fired["kind"],
-                           "rank": rank(rule.get("threat", "")),
-                           "rules": [fired["index"]],
+                    extra={"rank": rank(rule.get("threat", "")),
+                           "refs": [fired["index"]],
                            "doc_span": list(doc_span) if doc_span else None},
                 )
 

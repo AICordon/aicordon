@@ -25,6 +25,7 @@ from typing import Iterator
 from ..core.engine import EngineUnavailable
 from ..core.model import Document
 from ..core.product import Product
+from . import bench as bench_mod
 from . import report as report_mod
 from . import render
 
@@ -295,39 +296,55 @@ def cmd_scan(product: Product, a) -> int:
 
 
 def cmd_bench(product: Product, a) -> int:
-    """Timing only. Meaningful for a local rule and for an API alike — there it also measures the
-    network."""
+    """The detector measured on the caller's own documents, with the numbers we ourselves quote.
+
+    Ours were measured on our machine and our corpora; the constant scales with the CPU and the cost
+    of a document depends on what is written in it. So the tool carries the measurement rather than
+    asking to be believed — same statistics, same intervals, and a chart written as SVG because the
+    package has no dependencies to draw with.
+    """
     st = render.make_style(a.no_color)
+    t0 = time.perf_counter()
     try:
         det = _build(product, a)
     except EngineUnavailable as e:
         return _unavailable(st, product, e, True)
+    load_ms = (time.perf_counter() - t0) * 1000
 
     stats = _new_stats()
-    times: list[float] = []
-    chars = 0
-    for doc in _documents(a, stats):
-        chars += len(doc.text)
-        t = time.perf_counter()
-        for _rep in det.reports([doc]):
-            pass
-        times.append((time.perf_counter() - t) * 1000)
-        if len(times) >= PROGRESS_FROM and len(times) % PROGRESS_EVERY == 0:
-            print(f"  {len(times)}…", file=sys.stderr, flush=True)
-    if not times:
+
+    # The total is known only when the input is a file we can count first; over a directory or a
+    # stream it is not, and the bar says "elapsed" instead of "left" rather than inventing a total.
+    total = None
+    if getattr(a, "jsonl", None):
+        try:
+            total = sum(1 for line in Path(a.jsonl).open(encoding="utf-8") if line.strip())
+        except OSError:
+            total = None
+    bar = bench_mod.Progress(total)
+    rows = bench_mod.measure(det, _documents(a, stats), repeat=max(1, int(a.repeat)),
+                             progress=bar.tick)
+    bar.done()
+    if not rows:
         print("nothing to measure: the input is empty", file=sys.stderr)
         return EXIT_USAGE
 
-    times.sort()
-    n = len(times)
+    summary = bench_mod.summarize(rows, load_ms, det.name, det.version)
+    for line in bench_mod.lines(summary):
+        print(line)
+    # Skips are counted here too: a benchmark over "everything in the directory" that quietly left
+    # out half of it would misreport throughput as well as coverage.
+    tail = render.skipped_line(stats)
+    if tail:
+        print(f"  {st(tail, render.DIM)}")
 
-    def q(p: float) -> float:
-        return times[min(n - 1, int(n * p))]
-
-    print(f"  documents {n}, average length {chars // n} characters")
-    print(f"  ms/doc: median {q(0.5):.2f}   p90 {q(0.9):.2f}   p99 {q(0.99):.2f}   "
-          f"max {times[-1]:.2f}")
-    print(f"  total {sum(times) / 1000:.2f} s; engine {det.name} ({det.version})")
+    if getattr(a, "report", None):
+        Path(a.report).write_text(json.dumps(summary, ensure_ascii=False, indent=1),
+                                  encoding="utf-8")
+        print(f"  report: {a.report}")
+    if getattr(a, "chart", None):
+        Path(a.chart).write_text(bench_mod.svg(rows, summary), encoding="utf-8")
+        print(f"  chart:  {a.chart}")
     return EXIT_OK
 
 
@@ -496,6 +513,14 @@ def build_parser(product: Product) -> argparse.ArgumentParser:
 
     b = sub.add_parser("bench", help=COMMANDS["bench"][1])
     inputs(b)
+    # A timing is a measurement, so it gets the apparatus of one: repeats against a noisy machine,
+    # the numbers in a file for a later comparison, and a chart because a spread is read faster than
+    # it is described.
+    b.add_argument("--repeat", type=int, default=1, metavar="N",
+                   help="check every document N times and take the median (default 1)")
+    b.add_argument("--report", type=Path, metavar="FILE", help="write every number as JSON")
+    b.add_argument("--chart", type=Path, metavar="FILE",
+                   help="write the size-against-time chart as SVG (no dependencies)")
     product_options(b)
 
     e = sub.add_parser("explain", help=COMMANDS["explain"][1])
