@@ -17,10 +17,27 @@ cannot — is a separate product and is not out yet: [ai-cordon.com](https://ai-
 > reading it acts on instructions its user never gave. Not the user's own prompt: the danger is in
 > what your code fetches, retrieves or receives.
 
+### What it catches, and what it costs
+
+| | |
+|---|---|
+| **catches** | on the order of **20–30%** of the injections in our own bank |
+| **false positives** | **under 0.05%** |
+| **speed** | **2.12 ± 0.04 ms per 1000 characters** on one CPU core, no GPU |
+
+Read the first row again: it sees roughly a quarter, by design — a cheap, precise first line, not a
+complete one. Rounded on purpose; the exact figures with their denominators live in the base and are
+printed by `aicordon picket coverage`. What each number means and how it was taken:
+[Measured](#measured-recall-false-positives-speed).
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/speed-dark.png">
   <img alt="Time to check one document: the cost grows linearly with document size, about 2.1 ms per 1000 characters" src="docs/speed.png">
 </picture>
+
+The cost is the same whether the document carries an injection or not — 2 609 real documents, two
+panels measured separately so that the agreement is shown rather than asserted. Where the numbers
+come from, and what a check costs in memory: [Measured](#measured-recall-false-positives-speed).
 
 > [!IMPORTANT]
 > **The injected instruction has to be in English.** The document itself can be in any language,
@@ -90,7 +107,8 @@ premises as well as over the API, so upgrading the detection does not mean givin
 
 ## Measured: recall, false positives, speed
 
-Measured working point, on sources and payloads that took no part in building the tool:
+The working point in full, on sources and payloads that took no part in building the tool — the
+three numbers from the top, plus what they cost to run:
 
 | | |
 |---|---|
@@ -112,10 +130,6 @@ $ aicordon picket coverage
 
 Mind the denominator when you compare: recall counted by distinct PAYLOAD comes out higher than
 recall counted by DOCUMENT, and both are honest. `coverage` says which one it reports.
-
-**Read that first row again.** The tool sees roughly a quarter of the injections in its own bank. It
-is a cheap, precise first line — not a complete one, and it is tuned that way on purpose: precision
-first, recall second.
 
 ### False positives: it fires on this README
 
