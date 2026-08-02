@@ -1,4 +1,4 @@
-"""Picket — AI Cordon's free prefilter for indirect prompt injection. A rule; no model, no network.
+"""Picket — AI Cordon's free signature detector for indirect prompt injection. A rule; no model, no network.
 
 The package works as a tool and as a library. The second is not a side effect: adapters for AI
 frameworks will be written against THIS interface rather than against argument parsing, so importing
@@ -83,11 +83,12 @@ ART = r"""
 PRODUCT = Product(
     key="picket",
     title="Picket",
-    # NOT "detector": that word belongs to Intent. Picket is a prefilter — the product docs are
-    # explicit about it, and the reason is positioning, not modesty. "One more injection
-    # detector" is the frame this has to stay out of; a prefilter with low recall by design is
-    # a different promise, and it is one we can keep.
-    tagline="fast local prefilter for indirect prompt injection · a rule, no model, no network",
+    # "Detector" with the qualifier always attached: Picket is the SIGNATURE detector, Intent the
+    # SEMANTIC one. Same genus, different method — which is what the two products actually are, and
+    # naming them asymmetrically ("prefilter" vs "detector") only hid it. The frame to stay out of
+    # is the undifferentiated "one more injection detector", so the qualifier is not decoration:
+    # never ship the noun without it.
+    tagline="fast local signature detector for indirect prompt injection · a rule, no model, no network",
     version=VERSION,
     build=_build,
     art=ART,

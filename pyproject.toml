@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "aicordon"
 version = "0.1.0"
-description = "Picket: a fast local prefilter for indirect prompt injection — a rule, no model, no network"
+description = "Picket: a fast local signature detector for indirect prompt injection — a rule, no model, no network"
 readme = "README.md"
 requires-python = ">=3.10"
 # Автор — человек: юридического лица пока нет, а патентный грант Apache 2.0 выдаёт
