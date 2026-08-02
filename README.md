@@ -114,10 +114,9 @@ three numbers from the top, plus what they cost to run:
 | memory | **45.0 ± 1.3 MB + 0.231 ± 0.007 MB per KB** of the document being checked |
 | size | a single file of a few hundred KB, no dependencies |
 
-Deliberately rounded. Every one of these moves when the base is refrozen, and a README that quotes
-four decimal places goes stale quietly, while the version of the base it described is long gone. The
-exact figures — with their denominators, their sample sizes and their caveats — live in the base and
-are printed by the tool that carries them:
+Rounded on purpose: every one of these moves when the base is refrozen, and a README quoting four
+decimal places goes stale quietly. The exact figures live in the base and are printed by the tool
+that carries them:
 
 ```console
 $ aicordon picket coverage
@@ -241,9 +240,8 @@ ones you write about receiving.
 
 **2.12 ± 0.04 ms per 1000 characters on one CPU core** — that is the matcher itself; through
 `check()`, the call you actually make, it is 2.17 ± 0.07, and the two agree within their intervals.
-About 2.3 ms for a kilobyte-long letter, 6.7 ms for a three-kilobyte article. Not on a GPU: there is no GPU path and no need for one,
-which is the point — the check runs on whatever machine your code already runs on, in some 45 MB
-of RAM for ordinary documents (a megabyte-long page costs more; the model is below).
+About 2.3 ms for a kilobyte-long letter, 6.7 ms for a three-kilobyte article, in some 45 MB of RAM
+for ordinary documents — on whatever machine your code already runs on.
 
 Every figure on this page was measured on one core of an Intel Core i9-12900KF, Python 3.12 on
 Linux. The constant is a property of that machine and yours will differ; what carries over is the
@@ -331,8 +329,6 @@ over.
 And it is why the free layer is a rule and not a small model — a small model would keep the
 per-call floor and lose the recall.
 
-Every figure carries its own conditions — which corpora, which denominators, what is not covered.
-They are in the base, and `coverage` prints them along with the numbers.
 
 ## Limits: what it is not, and what it does not catch
 
