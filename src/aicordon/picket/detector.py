@@ -22,7 +22,11 @@ from .rule.scan import DATA, Scanner, pick_base     # noqa: F401 — DATA is use
 from .rule.threats import catalog, rank, signature   # noqa: F401 — signature is used by consumers
 
 LIMITS = (
-    "non-English text: the rule is English, recall on other languages is zero",
+    # The document may be in any language; what has to be English is the injected instruction.
+    # The old wording said "recall on other languages is zero", which is both wrong and worse than
+    # the truth: an English payload inside a German letter is caught, and that is the common case.
+    "a payload in another language: the document can be in any language, but the vocabulary the "
+    "base recognises is English, so an instruction written in German is not seen",
     "paraphrase without the vocabulary of an instruction: text saying the same thing in other "
     "words is not seen",
     "obfuscation: split words, substituted characters, an encoded payload",
@@ -75,8 +79,8 @@ class Detector(BaseDetector):
 
     @property
     def coverage(self) -> str:
-        return ("non-English text, paraphrase without trigger vocabulary, obfuscation and "
-                "injections inside code")
+        return ("payloads in another language, paraphrase without the vocabulary of an "
+                "instruction, obfuscation and injections inside code")
 
     @property
     def measured(self) -> dict:
