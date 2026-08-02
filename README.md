@@ -21,16 +21,19 @@ cannot — is a separate product and is not out yet: [ai-cordon.com](https://ai-
 
 | | |
 |---|---|
-| **catches** | on the order of **20–30%** of the injections in our own bank |
-| **false positives** | **under 0.05%** |
+| **false alarms** | **32 per 100 000 documents** — 0.03%, measured on mail and news |
+| **catches** | **20–30%** of the injections we test against |
+| **points at it** | roughly WHERE it is — a span that lands inside the payload and usually covers it, so the text can be cut rather than only flagged |
 | **speed** | **2.12 ± 0.04 ms per 1000 characters** on one CPU core |
 | **memory** | **45 MB** plus 0.23 MB per KB of the document — an ordinary process, not a served model |
 | **needs** | **nothing**: no GPU, no model to download, no network, no API key, no dependencies |
 
-Read the first row again: it sees a quarter or so, by design. That is not the number to judge it by —
-**the pair is**. A quarter of the injections removed at three false alarms per ten thousand documents,
-for two milliseconds and no network call, is a trade most pipelines have nowhere else to get:
-[why the pair matters](#why-a-third-is-worth-having).
+The order is deliberate. What a detector costs you every day is the first row; what it catches is the
+second, and it is low on purpose. Neither number means much alone — **the pair does**: a quarter of
+the injections removed at 32 false alarms per 100 000 documents, for two milliseconds and no network
+call, is a trade most pipelines have nowhere else to get. And what it finds it roughly LOCATES,
+which is what turns a verdict into an action: the payload can be cut out and the document kept.
+[Why that pair is worth having](#why-a-third-is-worth-having).
 
 Rounded on purpose; the exact figures with their denominators live in the base and are printed by
 `aicordon picket coverage`.
@@ -159,10 +162,11 @@ Read the last row as the honest boundary: where attacks are genuinely rare, an a
 and the tool is a ROUTER — it decides what deserves the expensive check, not what gets deleted.
 Where they are not rare, an alarm is almost always real and can drive an action.
 
-**The span is exact, so the action can be surgical.** The reported region has a precision of 1.000
-against the true payload boundaries: what it points at is inside the injection, never outside it. So
-the response is not limited to "drop the document" — the payload can be cut out and the rest of the
-letter, page or tool result kept:
+**It says roughly where, which is enough to cut.** The reported region lands INSIDE the injection —
+measured precision 1.000 against the true payload boundaries, so it does not point at innocent text
+— and with the padding it ships with it usually covers the whole payload. The edges are
+approximate: expect a sentence of slack either way rather than a clean cut. That is enough for the
+response to be more than "drop the document":
 
 ```python
 rep = det.check(page)
