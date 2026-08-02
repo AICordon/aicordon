@@ -107,12 +107,12 @@ three numbers from the top, plus what they cost to run:
 
 | | |
 |---|---|
-| recall | **20–32%** of the injections in our own corpus. The range spans both ways of counting — by distinct payload and by document — rather than quoting the flattering one; `coverage` prints which is which, with the denominators |
+| recall | **20–32%** of the injections in our own corpus — the range spans counting by distinct payload and by document, rather than quoting the flattering one |
 | false positives | **0.03%** — 32 of 101 386 documents on the evaluation half |
-| speed | **2.17 ± 0.07 ms per 1000 characters through `check()`** — about 2.3 ms for a 1 KB letter, 6.7 ms for a 3 KB article, ON ONE CPU CORE, no GPU, ever |
+| speed | **2.17 ± 0.07 ms per 1000 characters through `check()`** — about 2.3 ms for a 1 KB letter, 6.7 ms for a 3 KB article |
 | startup | **92 ± 2 ms** for the whole command — paid once per run, not per document |
 | memory | **45.0 ± 1.3 MB + 0.231 ± 0.007 MB per KB** of the document being checked |
-| size | a single file of a few hundred KB, no dependencies |
+| size | a single file of a few hundred KB |
 
 Rounded on purpose: every one of these moves when the base is refrozen, and a README quoting four
 decimal places goes stale quietly. The exact figures live in the base and are printed by the tool
