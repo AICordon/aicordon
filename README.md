@@ -174,9 +174,10 @@ paragraph goes, the letter stays a letter.
 
 **What it does not guarantee.** The span holds the WHOLE payload in 64% of mail and 55% of news
 documents, so a cut sometimes leaves a tail of the instruction behind. `picket.load(span_pad=150)`
-widens it and cuts more thoroughly, at the price of the document — 54–81% of the text survives
-instead of 79–94%, and on a document only a few hundred characters long a widened span can swallow
-all of it. Choose by what the text is for; there is no setting that is right for both.
+widens it and cuts more thoroughly, at the price of the document: over 2 000 documents the median
+survival goes from 94% of the text to 83%, and none of them lost everything at either setting. A
+document that is little more than the injection is the exception, and losing it is the right
+outcome.
 
 And a cut is not a proof: what the tool did not find is still there, cut or no cut.
 
