@@ -22,7 +22,7 @@ cannot — is a separate product and is not out yet: [ai-cordon.com](https://ai-
 | | |
 |---|---|
 | **false alarms** | **0.03%** — 32 per 100 000 documents |
-| **catches** | **20–32%** of the injections tested — 32% by payload, 20–30% by document |
+| **catches** | **20–32%** of the injections tested |
 | **span** | **0.98–1.00** of the payload covered · IoU 0.51–0.59 |
 | **speed** | **2.17 ± 0.07 ms** per 1000 characters through `check()` · one CPU core |
 | **memory** | **45 MB** + 0.23 MB per KB of the document |
@@ -118,7 +118,7 @@ three numbers from the top, plus what they cost to run:
 
 | | |
 |---|---|
-| recall | **20–32%** — 32.4% counted by distinct PAYLOAD on the evaluation half (30.1% under leave-one-source-out), 19.8–29.5% counted by DOCUMENT. The range spans both denominators rather than picking the flattering one |
+| recall | **20–32%** of the injections in our own corpus. The range spans both ways of counting — by distinct payload and by document — rather than quoting the flattering one; `coverage` prints which is which, with the denominators |
 | false positives | **0.03%** — 32 of 101 386 documents on the evaluation half |
 | speed | **2.17 ± 0.07 ms per 1000 characters through `check()`** — about 2.3 ms for a 1 KB letter, 6.7 ms for a 3 KB article, ON ONE CPU CORE, no GPU, ever |
 | startup | **92 ± 2 ms** for the whole command — paid once per run, not per document |
