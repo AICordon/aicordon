@@ -162,11 +162,22 @@ Read the last row as the honest boundary: where attacks are genuinely rare, an a
 and the tool is a ROUTER — it decides what deserves the expensive check, not what gets deleted.
 Where they are not rare, an alarm is almost always real and can drive an action.
 
-**It says roughly where, which is enough to cut.** The reported region lands INSIDE the injection —
-measured precision 1.000 against the true payload boundaries, so it does not point at innocent text
-— and with the padding it ships with it usually covers the whole payload. The edges are
-approximate: expect a sentence of slack either way rather than a clean cut. That is enough for the
-response to be more than "drop the document":
+**It says roughly where, which is enough to cut.** Measured against the true payload boundaries, on
+636 documents of mail and news, medians:
+
+| | mail | news |
+|---|---|---|
+| how much of the payload the span covers | **1.00** | **0.98** |
+| how much of the span is payload | 0.58 | 0.66 |
+| overlap (IoU) | 0.51 | 0.59 |
+| documents where 95% of the payload is inside | 64% | 55% |
+
+Read it as: the span almost always contains the whole injection, and about a third to a half of its
+length is the text around it. The edges are approximate — a sentence of slack either way, not a
+clean cut. What it does NOT do is point at innocent text: the raw anchor before padding has a
+precision of 1.000, which is why widening it is safe at all.
+
+That is enough for the response to be more than "drop the document":
 
 ```python
 rep = det.check(page)
