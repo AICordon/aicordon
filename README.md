@@ -98,7 +98,7 @@ Measured working point, on sources and payloads that took no part in building th
 | false positives | **under 0.05%** |
 | speed | **2.39 ± 0.04 ms for a 1 KB letter, 6.63 ± 0.08 ms for a 3 KB article — ON ONE CPU CORE**, no GPU, ever |
 | startup | **92 ± 2 ms per process** — paid once per run, not per document |
-| memory | **42 ± 0.3 MB** of RAM |
+| memory | **42 ± 0.3 MB** for ordinary documents, plus ~230× the size of the one being checked |
 | size | a single file of a few hundred KB, no dependencies |
 
 Deliberately rounded. Every one of these moves when the base is refrozen, and a README that quotes
@@ -145,7 +145,7 @@ ones you write about receiving.
 **2.12 ± 0.04 ms per 1000 characters on one CPU core** — 2.39 ± 0.04 ms for a kilobyte-long letter,
 6.63 ± 0.08 ms for a three-kilobyte article. Not on a GPU: there is no GPU path and no need for one,
 which is the point — the check runs on whatever machine your code already runs on, in 42 ± 0.3 MB
-of RAM.
+of RAM for ordinary documents (see below for what a megabyte-long page costs).
 
 Every figure on this page was measured on one core of an Intel Core i9-12900KF, Python 3.12 on
 Linux. The constant is a property of that machine and yours will differ; what carries over is the
@@ -174,8 +174,24 @@ without an injection, **2.08 ± 0.05** with one (95%). The difference is **0.09 
 consistent with zero — so it is not a difference we can claim to have measured, and that is the
 point of carrying the uncertainty rather than two bare numbers.
 
-Nothing degrades on a long page either: separate runs from half a kilobyte to 128 KB stay on the
-same line, so a 128 KB page costs what 128 one-kilobyte documents would.
+The same figures come out through the interface you actually call — `check`, not the matcher under
+it: **2.17 ± 0.07** ms per 1000 characters over 2 000 documents, **2.15 ± 0.16** over 10 000. Worth
+stating, because that is what a caller pays; measuring the layer below and quoting it as the cost
+would be quietly flattering.
+
+Nothing degrades in TIME on a long page: the most expensive document in a 10 000-document run is
+192 KB and costs 2.52 ms per 1000 characters, the same as a one-kilobyte letter.
+
+Memory is the exception, and it is the one figure here that is not flat. Peak RSS is about 42 MB
+plus roughly 230 times the size of the document being checked — the normalised copy, the offset
+map, the token list and the hit list are all alive at once:
+
+| document | 1 KB | 100 KB | 200 KB | 500 KB | 1 MB |
+|---|---|---|---|---|---|
+| peak RSS | 42 MB | 71 MB | 94 MB | 163 MB | 270 MB |
+
+The peak is set by the LARGEST document, not by their number: documents are checked one at a time,
+so a million small files cost what one of them costs.
 
 The spread at any given size comes from the text itself: prose full of the ordinary words the tool
 must look at costs more than the same length of text with none. That is why the per-document figure
