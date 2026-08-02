@@ -8,7 +8,7 @@ sequence number cannot, and it changes on its own schedule. Which base a build
 shipped with is recorded in each entry below and printed by
 `aicordon picket version`.
 
-## 0.1.0 — unreleased
+## 0.1.0 — 2026-08-02
 
 First release. Base `20260731`.
 

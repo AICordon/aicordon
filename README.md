@@ -60,7 +60,7 @@ come from, and what a check costs in memory: [Measured](#measured-recall-false-p
 ## Quick start
 
 ```console
-$ pip install aicordon            # not published yet — for now: pip install .
+$ pip install aicordon
 $ aicordon page.html              # the same detector, with a report
 $ aicordon picket scan --jsonl documents.jsonl --field text --json
 ```
