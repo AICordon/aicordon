@@ -21,11 +21,11 @@ cannot — is a separate product and is not out yet: [ai-cordon.com](https://ai-
 
 | | |
 |---|---|
-| **catches** | on the order of **20–30%** of the injections in our own bank |
+| **catches** | about **30%** of the injections in our own bank, counted by payload |
 | **false positives** | **under 0.05%** |
 | **speed** | **2.12 ± 0.04 ms per 1000 characters** on one CPU core, no GPU |
 
-Read the first row again: it sees roughly a quarter, by design — a cheap, precise first line, not a
+Read the first row again: it sees under a third, by design — a cheap, precise first line, not a
 complete one. Rounded on purpose; the exact figures with their denominators live in the base and are
 printed by `aicordon picket coverage`. What each number means and how it was taken:
 [Measured](#measured-recall-false-positives-speed).
@@ -112,7 +112,7 @@ three numbers from the top, plus what they cost to run:
 
 | | |
 |---|---|
-| recall | **on the order of 20–30%** of the injections in our own bank |
+| recall | about **30%** counted by distinct PAYLOAD — 32.4% on the evaluation half, 30.1% under leave-one-source-out; by DOCUMENT it comes out lower |
 | false positives | **under 0.05%** |
 | speed | **2.39 ± 0.04 ms for a 1 KB letter, 6.63 ± 0.08 ms for a 3 KB article — ON ONE CPU CORE**, no GPU, ever |
 | startup | **92 ± 2 ms per process** — paid once per run, not per document |
@@ -311,7 +311,7 @@ apart from "what you read next".
 ### What it never says
 
 There is no verdict "clean", no `is_safe` field, and there never will be. At a recall of roughly a
-quarter, a field you could believe in reverse would build a falsehood into the API. The tool reports
+third, a field you could believe in reverse would build a falsehood into the API. The tool reports
 what fired and names, in the same report, what it does not cover:
 
 ```console
