@@ -98,7 +98,7 @@ Measured working point, on sources and payloads that took no part in building th
 | false positives | **under 0.05%** |
 | speed | **2.39 ± 0.04 ms for a 1 KB letter, 6.63 ± 0.08 ms for a 3 KB article — ON ONE CPU CORE**, no GPU, ever |
 | startup | **92 ± 2 ms per process** — paid once per run, not per document |
-| memory | **42 ± 0.3 MB** for ordinary documents, plus ~230× the size of the one being checked |
+| memory | **45.0 ± 1.3 MB + 0.231 ± 0.007 MB per KB** of the document being checked |
 | size | a single file of a few hundred KB, no dependencies |
 
 Deliberately rounded. Every one of these moves when the base is refrozen, and a README that quotes
@@ -144,8 +144,8 @@ ones you write about receiving.
 
 **2.12 ± 0.04 ms per 1000 characters on one CPU core** — 2.39 ± 0.04 ms for a kilobyte-long letter,
 6.63 ± 0.08 ms for a three-kilobyte article. Not on a GPU: there is no GPU path and no need for one,
-which is the point — the check runs on whatever machine your code already runs on, in 42 ± 0.3 MB
-of RAM for ordinary documents (see below for what a megabyte-long page costs).
+which is the point — the check runs on whatever machine your code already runs on, in some 45 MB
+of RAM for ordinary documents (a megabyte-long page costs more; the model is below).
 
 Every figure on this page was measured on one core of an Intel Core i9-12900KF, Python 3.12 on
 Linux. The constant is a property of that machine and yours will differ; what carries over is the
@@ -182,16 +182,21 @@ would be quietly flattering.
 Nothing degrades in TIME on a long page: the most expensive document in a 10 000-document run is
 192 KB and costs 2.52 ms per 1000 characters, the same as a one-kilobyte letter.
 
-Memory is the exception, and it is the one figure here that is not flat. Peak RSS is about 42 MB
-plus roughly 230 times the size of the document being checked — the normalised copy, the offset
-map, the token list and the hit list are all alive at once:
+Memory is the exception, and it is the one figure here that is not flat. It has the same shape as
+the time — a base plus a slope — and it was fitted the same way, over 12 sizes and 36 runs:
+
+**peak RSS = 45.0 ± 1.3 MB + 0.231 ± 0.007 MB per KB of the document** (95%)
+
+which is about 237 times the size of the text on top of the base, because the normalised copy, the
+offset map, the token list and the hit list are all alive at once:
 
 | document | 1 KB | 100 KB | 200 KB | 500 KB | 1 MB |
 |---|---|---|---|---|---|
-| peak RSS | 42 MB | 71 MB | 94 MB | 163 MB | 270 MB |
+| peak RSS | 42 MB | 71 MB | 94 MB | 163 MB | 271 MB |
 
 The peak is set by the LARGEST document, not by their number: documents are checked one at a time,
-so a million small files cost what one of them costs.
+so a million small files cost what one of them costs. A megabyte-long page is what to watch —
+270 MB is four times the base, and it is the figure a container limit has to be set against.
 
 The spread at any given size comes from the text itself: prose full of the ordinary words the tool
 must look at costs more than the same length of text with none. That is why the per-document figure
