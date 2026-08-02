@@ -91,11 +91,6 @@ The full interface — batching, async, threads, JSON — is in [The library int
 
 ## Where it belongs, and why nothing leaves the process
 
-**Where to put it in an agent.** The text worth checking is what comes back from the outside: tool
-results, fetched pages, retrieved chunks, incoming mail — not the user's own prompt. Framework
-adapters (LangChain and the like) are not written yet; the interface below is what they will be
-built on.
-
 The check runs where your code runs. No network call, no model download, no account, no key, no
 telemetry — the package contains no network code at all, so the document you check has nowhere to be
 sent even by accident. Mail, tickets, contracts, patient records, anything under GDPR: the question
