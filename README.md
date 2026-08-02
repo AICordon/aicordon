@@ -194,14 +194,14 @@ documents of mail and news, medians:
 The span contains the whole injection almost every time, and a third to a half of its length is the
 text around it. Edges are approximate — a sentence of slack either way, not a clean cut.
 
-The last row is the one that makes the rest usable: before the padding is applied, what the rules
-match lies INSIDE the payload every time. Widening a point that is always right is safe; widening a
-guess would not be. The padding it ships with was chosen on this curve — at zero the span covers
-0.44 of the payload, at +50 characters it covers all of it, and past that the span starts swallowing
-half the page (IoU 0.21 at +150).
+The last row is the one that makes the rest usable: what the rules match lies INSIDE the payload
+every time. That is the anchor everything else is built from.
 
-`--span-pad` moves along that curve in either direction: `0` is the measured optimum, `-50` gives
-the raw anchor, `+150` suits trimming a document for something more expensive to read.
+**The strictness is yours to set.** `--span-pad 0` — the default — is the measured optimum, the
+setting the table above describes. Negative values tighten the span towards the bare anchor: less of
+the surrounding text, less of the payload. Positive values widen it: the whole payload with room to
+spare, useful when the span is fed to something more expensive to read, at the cost of carrying more
+innocent text along.
 
 ### False positives: it fires on this README
 
