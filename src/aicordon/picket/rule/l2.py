@@ -3,7 +3,7 @@
 L1 (`ac.py`) turns text into a sparse stream of (offset, slot) hits. This layer recognises the
 CONSTRUCTIONS those hits form: an ordered sequence of slots where at most N ordinary words may sit
 between neighbours. `{CANCEL_VERB} ~2 {SCOPE} ~3 {PRIOR_REF}` is one such template, and a match of
-it is a FRAGMENT — the semi-semantic unit the verdict is later built from (README, level L3).
+it is a FRAGMENT — the semi-semantic unit the verdict is built from a layer higher up.
 
 The bounded gap is what keeps the automaton finite: state = (how far into the template, where the
 last hit ended). Several ends have to be kept per position, not just the latest one, and the reason

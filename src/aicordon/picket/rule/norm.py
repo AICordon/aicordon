@@ -1,15 +1,15 @@
 """L0a — input hygiene with an offset map back to the original text.
 
-Two consumers, one definition of "the text": the prefilter matches literals on the normalised form,
-and the detector is proposed to read the same form (root TODO.md). If the two ever normalise
+Two consumers, one definition of "the text": the signature detector matches literals on the
+normalised form, and the semantic one is meant to read the same form. If the two ever normalise
 differently they judge different strings, and that difference is exploitable.
 
 Everything here is meaning-preserving hygiene. Case folding, leet and repeat collapsing are NOT
-here — they belong to L0b, which is prefilter-only: the detector reads form as signal (capitals are
-a construction of their own in exp39).
+here — they belong to L0b, which only the signature side applies: a model reads form as signal,
+because capitals are a construction of their own.
 
-The offset map is the whole point. The wire between the hosts carries CHARACTER offsets
-(`detectors-finals/aicordon_window/v1/config.json`), NFKC changes string length, and removing
+The offset map is the whole point. What crosses between the two sides are CHARACTER offsets, NFKC
+changes string length, and removing
 zero-width characters shortens it, so a span found on the normalised text has to be translated back
 before anyone can quote it.
 
@@ -30,7 +30,7 @@ import unicodedata
 from dataclasses import dataclass, field
 
 # Homoglyphs that NFKC does NOT fold: Cyrillic and Greek letters drawn like Latin ones. This is the
-# obfuscation from exp18 in its cheapest form — "іgnore" with a Cyrillic і reads identically and
+# obfuscation in its cheapest form — "іgnore" with a Cyrillic і reads identically and
 # matches nothing. Only unambiguous 1:1 shapes are listed; anything doubtful is left alone, because a
 # wrong fold silently rewrites innocent text.
 CONFUSABLES = {

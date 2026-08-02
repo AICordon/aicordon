@@ -27,8 +27,8 @@ def crosses(breaks, a: int, b: int) -> bool:
     `breaks` is sorted, so the question is answered by two binary searches instead of a scan. That
     is not micro-optimisation: the check sits inside the per-hit, per-token loop, and scanning the
     whole list made the pass quadratic in document length. Measured on a 128 KB page: 38 million
-    comparisons, about 3.3 of the 4.4 seconds it took. Long HTML pages are exactly what a prefilter
-    is pointed at, so the cost showed up where it hurts.
+    comparisons, about 3.3 of the 4.4 seconds it took. Long HTML pages are exactly what this is
+    pointed at, so the cost showed up where it hurts.
     """
     return bisect.bisect_left(breaks, a) != bisect.bisect_left(breaks, b)
 
@@ -213,7 +213,7 @@ def pairs(low: str, toks, hits, sink, keep, breaks, starts, tokmask, spans=None)
     """Edges "anchor -> filler": an attention head in its cheap form.
 
     The context counter MASKS neighbouring terms — right for the question "what surrounds this
-    construction" and wrong for relations: the head of exp04 builds the link "directive->target",
+    construction" and wrong for relations: what matters is the link "directive->target",
     and masking the target erases exactly what it sees. So pairs are counted separately, in the same
     pass.
 

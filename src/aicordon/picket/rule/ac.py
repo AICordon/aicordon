@@ -4,13 +4,13 @@ One pass over the text finds every phrase of the dictionary at once, in time pro
 text length plus the number of matches and INDEPENDENT of how many phrases are in the dictionary.
 That independence is why the dictionary stays multilingual and shared: adding a language costs
 nothing at scan time, and routing by document language would lose the cross-lingual injections
-(exp17).
+when it was built.
 
 The automaton is a trie of all phrases plus failure links: from every node, a link to the node for
 the longest proper suffix of the path so far that is also in the trie. On a mismatch the scan does
 not go back in the text, it follows the link and continues. No backtracking means no catastrophic
 case on an 8k page, and the result does not depend on the order phrases were added — the
-determinism the prefilter promises.
+determinism a signature detector promises.
 
     a = Automaton()
     a.add("ignore all previous instructions", ("CANCEL", "en"))
@@ -18,7 +18,7 @@ determinism the prefilter promises.
     for lo, hi, payload in a.find(text): ...
 
 Case and form: the automaton matches literally. Callers feed it text already through L0a
-(`norm.py`) and, for the prefilter, lowercased — L0b. Keeping folding out of here means the same
+(`norm.py`) and, on the signature side, lowercased — L0b. Keeping folding out of here means the same
 automaton can serve a case-sensitive consumer later.
 
 Word boundaries are checked at match time, not encoded in the trie: without them "all" fires inside

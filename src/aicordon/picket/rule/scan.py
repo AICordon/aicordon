@@ -275,8 +275,8 @@ class Scanner:
                 # a span must remain a valid slice of the original text.
                 r["span"] = snap(text, max(0, lo - grow), min(len(text), hi + grow))
 
-        # The document span is the hull of the fired rules (README, L3: "the region from the first
-        # fragment to the last is a candidate injection span"). It is a HINT, not localisation: the
+        # The document span is the hull of the fired rules — the region from the first fragment to
+        # the last is a candidate injection span. It is a HINT, not localisation: the
         # measured precision is 1.000, and the payload tail past the last edge is not part of it.
         good = [r["span"] for r in fired if r["span"][0] >= 0]
         span = [min(s[0] for s in good), max(s[1] for s in good)] if good else [-1, -1]
