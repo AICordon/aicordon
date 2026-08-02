@@ -21,14 +21,19 @@ cannot — is a separate product and is not out yet: [ai-cordon.com](https://ai-
 
 | | |
 |---|---|
-| **catches** | about **30%** of the injections in our own bank, counted by payload |
+| **catches** | on the order of **20–30%** of the injections in our own bank |
 | **false positives** | **under 0.05%** |
-| **speed** | **2.12 ± 0.04 ms per 1000 characters** on one CPU core, no GPU |
+| **speed** | **2.12 ± 0.04 ms per 1000 characters** on one CPU core |
+| **memory** | **45 MB** plus 0.23 MB per KB of the document — an ordinary process, not a served model |
+| **needs** | **nothing**: no GPU, no model to download, no network, no API key, no dependencies |
 
-Read the first row again: it sees under a third, by design — a cheap, precise first line, not a
-complete one. Rounded on purpose; the exact figures with their denominators live in the base and are
-printed by `aicordon picket coverage`. What each number means and how it was taken:
-[Measured](#measured-recall-false-positives-speed).
+Read the first row again: it sees a quarter or so, by design. That is not the number to judge it by —
+**the pair is**. A quarter of the injections removed at three false alarms per ten thousand documents,
+for two milliseconds and no network call, is a trade most pipelines have nowhere else to get:
+[why the pair matters](#why-a-third-is-worth-having).
+
+Rounded on purpose; the exact figures with their denominators live in the base and are printed by
+`aicordon picket coverage`.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/speed-dark.png">
@@ -49,6 +54,7 @@ come from, and what a check costs in memory: [Measured](#measured-recall-false-p
 * [Quick start](#quick-start)
 * [Where it belongs, and why nothing leaves the process](#where-it-belongs-and-why-nothing-leaves-the-process)
 * [Measured: recall, false positives, speed](#measured-recall-false-positives-speed)
+  * [Why a third is worth having](#why-a-third-is-worth-having)
   * [False positives: it fires on this README](#false-positives-it-fires-on-this-readme)
   * [Speed: the other half of the argument](#speed-the-other-half-of-the-argument)
 * [Limits: what it is not, and what it does not catch](#limits-what-it-is-not-and-what-it-does-not-catch)
@@ -112,7 +118,7 @@ three numbers from the top, plus what they cost to run:
 
 | | |
 |---|---|
-| recall | about **30%** counted by distinct PAYLOAD — 32.4% on the evaluation half, 30.1% under leave-one-source-out; by DOCUMENT it comes out lower |
+| recall | **20–30%** of the injections in our own bank — 32.4% counted by distinct PAYLOAD on the evaluation half and 30.1% under leave-one-source-out, 19.8–29.5% counted by DOCUMENT. The range covers both denominators rather than picking the flattering one |
 | false positives | **under 0.05%** |
 | speed | **2.39 ± 0.04 ms for a 1 KB letter, 6.63 ± 0.08 ms for a 3 KB article — ON ONE CPU CORE**, no GPU, ever |
 | startup | **92 ± 2 ms per process** — paid once per run, not per document |
@@ -130,6 +136,50 @@ $ aicordon picket coverage
 
 Mind the denominator when you compare: recall counted by distinct PAYLOAD comes out higher than
 recall counted by DOCUMENT, and both are honest. `coverage` says which one it reports.
+
+### Why a third is worth having
+
+A quarter sounds like a failing grade until you ask what it costs and what it lets you DO. Recall is
+the number people look at; the pair is the number that decides whether the thing is usable.
+
+**Three false alarms per ten thousand documents make the response automatable.** A detector that
+flags 5% of ordinary traffic can only raise a ticket — somebody has to look. At this rate you can
+act on a finding without a human in the loop, and what precision you get depends on how poisoned
+your stream is:
+
+| poisoned documents in the stream | of the alarms, how many are real | false alarms per 10 000 documents |
+|---|---|---|
+| 1 in 10 | 99.1% | 3 |
+| 1 in 20 | 98.2% | 3 |
+| 1 in 100 | 91.2% | 3 |
+| 1 in 200 | 83.7% | 3 |
+| 1 in 1000 | 50.7% | 3 |
+
+Read the last row as the honest boundary: where attacks are genuinely rare, an alarm is a coin flip
+and the tool is a ROUTER — it decides what deserves the expensive check, not what gets deleted.
+Where they are not rare, an alarm is almost always real and can drive an action.
+
+**The span is exact, so the action can be surgical.** The reported region has a precision of 1.000
+against the true payload boundaries: what it points at is inside the injection, never outside it. So
+the response is not limited to "drop the document" — the payload can be cut out and the rest of the
+letter, page or tool result kept:
+
+```python
+rep = det.check(page)
+if rep.flagged:
+    lo, hi = rep.span
+    page = page[:lo] + page[hi:]        # keep the document, remove the instruction
+```
+
+**It costs nothing to leave switched on.** No GPU, no network call, no API key, no model to
+download, no dependency to resolve against your framework's pinned versions. Two milliseconds and
+45 MB per process, in the process you already have. Nothing about the document leaves it — which for
+mail, tickets, contracts and anything under GDPR is the first question, before accuracy.
+
+**And it is subtractive, not exclusive.** Whatever catches the other two thirds — a model, a review
+step, the full AI Cordon detector — has less to do and pays for fewer documents, because the obvious
+third is already gone. The two do not compete; the cheap one runs first and the expensive one runs
+on what is left.
 
 ### False positives: it fires on this README
 
@@ -311,7 +361,7 @@ apart from "what you read next".
 ### What it never says
 
 There is no verdict "clean", no `is_safe` field, and there never will be. At a recall of roughly a
-third, a field you could believe in reverse would build a falsehood into the API. The tool reports
+quarter, a field you could believe in reverse would build a falsehood into the API. The tool reports
 what fired and names, in the same report, what it does not cover:
 
 ```console
