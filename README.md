@@ -21,12 +21,12 @@ cannot — is a separate product and is not out yet: [ai-cordon.com](https://ai-
 
 | | |
 |---|---|
-| **false alarms** | **0.03%** · 32 per 100 000 documents |
-| **catches** | **20–30%** of the injections tested |
+| **false alarms** | **0.03%** — 32 per 100 000 documents |
+| **catches** | **20–32%** of the injections tested — 32% by payload, 20–30% by document |
 | **span** | **0.98–1.00** of the payload covered · IoU 0.51–0.59 |
-| **speed** | **2.12 ± 0.04 ms** per 1000 characters · one CPU core |
+| **speed** | **2.17 ± 0.07 ms** per 1000 characters through `check()` · one CPU core |
 | **memory** | **45 MB** + 0.23 MB per KB of the document |
-| **startup** | **92 ± 2 ms** per process · nothing per call |
+| **startup** | **92 ± 2 ms** per process, of which ~17 ms is the base · nothing per call |
 | **needs** | no GPU · no network · no key · no dependencies |
 
 Rounded; the exact figures with their denominators are printed by `aicordon picket coverage`. Why a
@@ -60,7 +60,7 @@ come from, and what a check costs in memory: [Measured](#measured-recall-false-p
   * [What it never says](#what-it-never-says)
 * [Triage: what to do with what was found](#triage-what-to-do-with-what-was-found)
 * [The library interface](#the-library-interface)
-* [The base, its version and its updates](#the-base-its-version-and-its-updates)
+* [The base and its version](#the-base-and-its-version)
 * [Licensing](#licensing)
 
 ## Quick start
@@ -88,7 +88,7 @@ page = fetch(url)
 rep = det.check(page)
 if rep.flagged:
     log.warning("injection in tool output: %s at %s", rep.threats, rep.span)
-    page = page[:rep.span[0]] + page[rep.span[1]:]   # or drop it, or ask a human
+    page = sanitise(page, rep)          # cut the findings out, or drop the page, or ask a human
 ```
 
 The full interface — batching, async, threads, JSON — is in [The library interface](#the-library-interface).
@@ -116,10 +116,10 @@ three numbers from the top, plus what they cost to run:
 
 | | |
 |---|---|
-| recall | **20–30%** of the injections in our own bank — 32.4% counted by distinct PAYLOAD on the evaluation half and 30.1% under leave-one-source-out, 19.8–29.5% counted by DOCUMENT. The range covers both denominators rather than picking the flattering one |
-| false positives | **under 0.05%** |
-| speed | **2.39 ± 0.04 ms for a 1 KB letter, 6.63 ± 0.08 ms for a 3 KB article — ON ONE CPU CORE**, no GPU, ever |
-| startup | **92 ± 2 ms per process** — paid once per run, not per document |
+| recall | **20–32%** — 32.4% counted by distinct PAYLOAD on the evaluation half (30.1% under leave-one-source-out), 19.8–29.5% counted by DOCUMENT. The range spans both denominators rather than picking the flattering one |
+| false positives | **0.03%** — 32 of 101 386 documents on the evaluation half |
+| speed | **2.17 ± 0.07 ms per 1000 characters through `check()`** — about 2.3 ms for a 1 KB letter, 6.7 ms for a 3 KB article, ON ONE CPU CORE, no GPU, ever |
+| startup | **92 ± 2 ms** for the whole command — interpreter, imports and ~17 ms of base — paid once per run, not per document |
 | memory | **45.0 ± 1.3 MB + 0.231 ± 0.007 MB per KB** of the document being checked |
 | size | a single file of a few hundred KB, no dependencies |
 
@@ -140,18 +140,18 @@ recall counted by DOCUMENT, and both are honest. `coverage` says which one it re
 A quarter sounds like a failing grade until you ask what it costs and what it lets you DO. Recall is
 the number people look at; the pair is the number that decides whether the thing is usable.
 
-**Three false alarms per ten thousand documents make the response automatable.** A detector that
+**32 false alarms per 100 000 documents make the response automatable.** A detector that
 flags 5% of ordinary traffic can only raise a ticket — somebody has to look. At this rate you can
 act on a finding without a human in the loop, and what precision you get depends on how poisoned
 your stream is:
 
-| poisoned documents in the stream | of the alarms, how many are real | false alarms per 10 000 documents |
+| poisoned documents in the stream | of the alarms, how many are real | false alarms per 100 000 documents |
 |---|---|---|
-| 1 in 10 | 99.1% | 3 |
-| 1 in 20 | 98.2% | 3 |
-| 1 in 100 | 91.2% | 3 |
-| 1 in 200 | 83.7% | 3 |
-| 1 in 1000 | 50.7% | 3 |
+| 1 in 10 | 99.1% | 32 |
+| 1 in 20 | 98.2% | 32 |
+| 1 in 100 | 91.2% | 31 |
+| 1 in 200 | 83.7% | 31 |
+| 1 in 1000 | 50.7% | 32 |
 
 Read the last row as the honest boundary: where attacks are genuinely rare, an alarm is a coin flip
 and the tool is a ROUTER — it decides what deserves the expensive check, not what gets deleted.
@@ -163,11 +163,18 @@ wanted. Cutting the span out — or masking it in place — removes the injectio
 
 ```python
 rep = det.check(page)
-if rep.flagged:
-    lo, hi = rep.span
+# Iterate the FINDINGS, from the end so the offsets ahead stay valid. `rep.span` is the hull of
+# them all — the region "somewhere in here", not a thing to cut: with two injections and honest
+# text between them it covers the lot.
+for f in reversed(rep.findings):
+    lo, hi = f.span
     page = page[:lo] + page[hi:]                    # cut it out
-    # page = page[:lo] + "[removed]" + page[hi:]    # or mask it, keeping the offsets sane
+    # page = page[:lo] + "[removed]" + page[hi:]    # or mask it, keeping the text readable
 ```
+
+A finding can still be wide — several rules over one sentence are merged into one place, and a
+document that is mostly injection produces a span that is mostly the document. Look at what you are
+about to remove before removing it in anger.
 
 On real documents that leaves **79–94% of the text** in place at the default padding: the injected
 paragraph goes, the letter stays a letter.
@@ -257,9 +264,14 @@ $ aicordon picket bench ./docs --report bench.json --chart bench.svg
   per document   median 5.87 ms   P10-P90 2.223-12.826   P99 22.463   max 43.522
   cost model     2.168 ± 0.069 ms per 1000 characters, plus 0.163 ± 0.18 ms per document (95%)
   throughput     143.6 documents/s, 450396 characters/s
-  startup        16.3 ms, once per process
+  base load      17.3 ms, once per process (the whole command costs more: interpreter and imports on top)
   fired on       207 of 2000 documents (10.35%) — not an error rate, these documents carry no labels
 ```
+
+That last line is a property of the corpus, not of the detector: those 2 000 documents are an
+INJECTED pool, so a tenth of them firing is recall showing through rather than a false-alarm rate.
+On your own traffic the same line means something else again — which is exactly why the tool
+declines to name it.
 
 The chart is SVG, drawn without a plotting library — a package with no dependencies has none to draw
 with. The last line is deliberately not called a false-positive rate: your documents carry no
@@ -315,9 +327,13 @@ Picket pays its floor per PROCESS instead, and the difference is the whole point
 | **as the `aicordon` command** | **92 ± 2 ms** to start | the same 2.39 ± 0.04 ms |
 
 So an agent loop, a server or a queue pays nothing per check beyond the text itself. A pre-commit
-hook or a CI step pays the start once and then scans as fast as it reads: 500 documents in one run
-take 1.11 ± 0.08 s in total, which is 2.04 ms each on top of the start. What you must not do is
-spawn the command per file — that pays the floor 500 times over.
+hook or a CI step pays the start once and then scans as fast as it reads — worth doing, with one
+caveat that is about the CONTENT and not the cost: a repository of security writing is the corpus
+this tool argues with, see [false positives](#false-positives-it-fires-on-this-readme).
+
+The arithmetic: 500 documents in one run take 1.11 ± 0.08 s in total, which is 2.04 ms each on top
+of the start. What you must not do is spawn the command per file — that pays the floor 500 times
+over.
 
 And it is why the free layer is a rule and not a small model — a small model would keep the
 per-call floor and lose the recall.
@@ -478,10 +494,12 @@ no dependencies at all — nothing to resolve against whatever pydantic or aioht
 pins.
 
 Spans are offsets into the original text, and every finding carries the evidence that produced it.
+`finding.span` is one place; **`rep.span` is the hull of them all** — the answer to "whereabouts in
+this document", not a region to excise. Cut by findings, not by the hull.
 The full detector, when it ships, answers to the same names, so code written against this interface
 does not change.
 
-## The base, its version and its updates
+## The base and its version
 
 The detection base ships as one file under `src/aicordon/picket/data/`, and its name says everything a report
 needs to quote it by:

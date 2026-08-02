@@ -175,7 +175,11 @@ def summarize(rows: list[dict], load_ms: float, engine: str, version: str) -> di
         "engine": engine,
         "engine_version": version,
         "documents": len(rows),
-        "startup_ms": round(load_ms, 1),
+        # NOT the startup of the command: this is the base coming up INSIDE an already running
+        # interpreter. The process as a whole costs several times more — interpreter, imports and
+        # this. Two different things under one word is how a README ends up arguing with its own
+        # example output, which is exactly what happened before this was renamed.
+        "base_load_ms": round(load_ms, 1),
         "total_s": round(total_ms / 1000, 3),
         "chars_total": int(total_chars),
         "size": {
@@ -243,7 +247,8 @@ def lines(s: dict) -> list[str]:
         f"per-character cost from the per-document one",
         f"  throughput     {s['throughput']['documents_per_s']} documents/s, "
         f"{s['throughput']['chars_per_s']} characters/s",
-        f"  startup        {s['startup_ms']} ms, once per process",
+        f"  base load      {s['base_load_ms']} ms, once per process "
+        f"(the whole command costs more: interpreter and imports on top)",
         f"  whole run      {s['total_s']} s",
         f"  dearest doc    {s['slowest_per_char'][0]['ms_per_1000']} ms per 1000 characters "
         f"({s['slowest_per_char'][0]['size']} chars) — against a median of "
