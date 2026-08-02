@@ -21,9 +21,9 @@ cannot — is a separate product and is not out yet: [ai-cordon.com](https://ai-
 
 | | |
 |---|---|
-| **false alarms** | **32 per 100 000 documents** · 0.03% |
+| **false alarms** | **0.03%** · 32 per 100 000 documents |
 | **catches** | **20–30%** of the injections tested |
-| **span** | covers **0.98–1.00** of the payload · IoU **0.51–0.59** |
+| **span** | **0.98–1.00** of the payload covered · IoU 0.51–0.59 |
 | **speed** | **2.12 ± 0.04 ms** per 1000 characters · one CPU core |
 | **memory** | **45 MB** + 0.23 MB per KB of the document |
 | **startup** | **92 ± 2 ms** per process · nothing per call |
