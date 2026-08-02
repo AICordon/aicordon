@@ -178,10 +178,8 @@ outcome.
 
 And a cut is not a proof: what the tool did not find is still there, cut or no cut.
 
-**It costs nothing to leave switched on.** No GPU, no network call, no API key, no model to
-download, no dependency to resolve against your framework's pinned versions. Two milliseconds and
-45 MB per process, in the process you already have. Nothing about the document leaves it — which for
-mail, tickets, contracts and anything under GDPR is the first question, before accuracy.
+**It costs nothing to leave switched on.** Two milliseconds and 45 MB, in the process you already
+have — nothing to install, nothing to reach for, nothing to wait on.
 
 **And it is subtractive, not exclusive.** Whatever catches the other two thirds — a model, a review
 step, the full AI Cordon detector — has less to do and pays for fewer documents, because the obvious
@@ -332,9 +330,7 @@ per-call floor and lose the recall.
 
 ## Limits: what it is not, and what it does not catch
 
-Picket is a signature detector — basic hygiene at the door, not a verdict on the document. It
-catches the obvious at a false-positive rate near zero, and it is tuned that way deliberately:
-**precision first, recall second**.
+Picket is a signature detector — basic hygiene at the door, not a verdict on the document.
 
 Three limits we would rather state ourselves than have pointed out:
 
@@ -347,15 +343,10 @@ Three limits we would rather state ourselves than have pointed out:
   semantic detector's job, not a signature's.
 * **recall is low by design**, and we publish it as a number instead of a hedge.
 
-**What must be English is the payload, not the document** — the callout at the top of this page
-says it first, and here is why it cannot be worked around. A German letter carrying an English
-"ignore all previous instructions" is caught, and that case is the common one, because payloads
-travel copied from English sources. A payload written in German is not caught.
-
-Checking the document's language beforehand does not help: to know what language the payload is in
-you would first have to find the payload, which is the whole job. The full list of what the tool
-does not cover is printed by the tool itself, `aicordon picket coverage`, where it stays in step
-with the base that carries it.
+Checking the document's language beforehand does not help, and this is worth saying because it
+sounds like it would: to know what language the payload is in you would first have to find the
+payload, which is the whole job. A German letter carrying an English payload is caught — that case
+is the common one, because payloads travel copied from English sources.
 
 The named classes it does not see:
 
