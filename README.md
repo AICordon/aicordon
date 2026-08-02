@@ -21,22 +21,16 @@ cannot — is a separate product and is not out yet: [ai-cordon.com](https://ai-
 
 | | |
 |---|---|
-| **false alarms** | **32 per 100 000 documents** — 0.03%, measured on mail and news |
-| **catches** | **20–30%** of the injections we test against |
-| **points at it** | roughly WHERE it is — a span that lands inside the payload and usually covers it, so the text can be cut rather than only flagged |
-| **speed** | **2.12 ± 0.04 ms per 1000 characters** on one CPU core |
-| **memory** | **45 MB** plus 0.23 MB per KB of the document — an ordinary process, not a served model |
-| **needs** | **nothing**: no GPU, no model to download, no network, no API key, no dependencies |
+| **false alarms** | **32 per 100 000 documents** · 0.03% |
+| **catches** | **20–30%** of the injections tested |
+| **span** | covers **0.98–1.00** of the payload · IoU **0.51–0.59** |
+| **speed** | **2.12 ± 0.04 ms** per 1000 characters · one CPU core |
+| **memory** | **45 MB** + 0.23 MB per KB of the document |
+| **startup** | **92 ± 2 ms** per process · nothing per call |
+| **needs** | no GPU · no network · no key · no dependencies |
 
-The order is deliberate. What a detector costs you every day is the first row; what it catches is the
-second, and it is low on purpose. Neither number means much alone — **the pair does**: a quarter of
-the injections removed at 32 false alarms per 100 000 documents, for two milliseconds and no network
-call, is a trade most pipelines have nowhere else to get. And what it finds it roughly LOCATES,
-which is what turns a verdict into an action: the payload can be cut out and the document kept.
-[Why that pair is worth having](#why-a-third-is-worth-having).
-
-Rounded on purpose; the exact figures with their denominators live in the base and are printed by
-`aicordon picket coverage`.
+Rounded; the exact figures with their denominators are printed by `aicordon picket coverage`. Why a
+recall this low is worth running: [the pair, not the number](#why-a-third-is-worth-having).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/speed-dark.png">
@@ -58,6 +52,7 @@ come from, and what a check costs in memory: [Measured](#measured-recall-false-p
 * [Where it belongs, and why nothing leaves the process](#where-it-belongs-and-why-nothing-leaves-the-process)
 * [Measured: recall, false positives, speed](#measured-recall-false-positives-speed)
   * [Why a third is worth having](#why-a-third-is-worth-having)
+  * [The span: where it points](#the-span-where-it-points)
   * [False positives: it fires on this README](#false-positives-it-fires-on-this-readme)
   * [Speed: the other half of the argument](#speed-the-other-half-of-the-argument)
 * [Limits: what it is not, and what it does not catch](#limits-what-it-is-not-and-what-it-does-not-catch)
@@ -162,22 +157,9 @@ Read the last row as the honest boundary: where attacks are genuinely rare, an a
 and the tool is a ROUTER — it decides what deserves the expensive check, not what gets deleted.
 Where they are not rare, an alarm is almost always real and can drive an action.
 
-**It says roughly where, which is enough to cut.** Measured against the true payload boundaries, on
-636 documents of mail and news, medians:
-
-| | mail | news |
-|---|---|---|
-| how much of the payload the span covers | **1.00** | **0.98** |
-| how much of the span is payload | 0.58 | 0.66 |
-| overlap (IoU) | 0.51 | 0.59 |
-| documents where 95% of the payload is inside | 64% | 55% |
-
-Read it as: the span almost always contains the whole injection, and about a third to a half of its
-length is the text around it. The edges are approximate — a sentence of slack either way, not a
-clean cut. What it does NOT do is point at innocent text: the raw anchor before padding has a
-precision of 1.000, which is why widening it is safe at all.
-
-That is enough for the response to be more than "drop the document":
+**It locates what it finds**, well enough to cut it out rather than only flag it — see
+[the span](#the-span-where-it-points) for what that costs in precision. The response is therefore
+not limited to "drop the document":
 
 ```python
 rep = det.check(page)
@@ -195,6 +177,31 @@ mail, tickets, contracts and anything under GDPR is the first question, before a
 step, the full AI Cordon detector — has less to do and pays for fewer documents, because the obvious
 third is already gone. The two do not compete; the cheap one runs first and the expensive one runs
 on what is left.
+
+### The span: where it points
+
+A finding carries offsets, not just a verdict. Measured against the true payload boundaries on 636
+documents of mail and news, medians:
+
+| | mail | news |
+|---|---|---|
+| of the payload, how much the span covers | **1.00** | **0.98** |
+| of the span, how much is payload | 0.58 | 0.66 |
+| overlap (IoU) | 0.51 | 0.59 |
+| documents with 95% of the payload inside | 64% | 55% |
+| raw anchor, before padding: precision | **1.000** | **1.000** |
+
+The span contains the whole injection almost every time, and a third to a half of its length is the
+text around it. Edges are approximate — a sentence of slack either way, not a clean cut.
+
+The last row is the one that makes the rest usable: before the padding is applied, what the rules
+match lies INSIDE the payload every time. Widening a point that is always right is safe; widening a
+guess would not be. The padding it ships with was chosen on this curve — at zero the span covers
+0.44 of the payload, at +50 characters it covers all of it, and past that the span starts swallowing
+half the page (IoU 0.21 at +150).
+
+`--span-pad` moves along that curve in either direction: `0` is the measured optimum, `-50` gives
+the raw anchor, `+150` suits trimming a document for something more expensive to read.
 
 ### False positives: it fires on this README
 
