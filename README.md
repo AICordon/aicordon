@@ -26,7 +26,7 @@ cannot — is a separate product and is not out yet: [ai-cordon.com](https://ai-
 | **span** | **0.98–1.00** of the payload covered · IoU 0.51–0.59 |
 | **speed** | **2.17 ± 0.07 ms** per 1000 characters through `check()` · one CPU core |
 | **memory** | **45 MB** + 0.23 MB per KB of the document |
-| **startup** | **92 ± 2 ms** per process, of which ~17 ms is the base · nothing per call |
+| **startup** | **92 ± 2 ms** per process · nothing per call |
 | **needs** | no GPU · no network · no key · no dependencies |
 
 Rounded; the exact figures with their denominators are printed by `aicordon picket coverage`. Why a
@@ -81,7 +81,7 @@ attached to it.
 ```python
 from aicordon import picket
 
-det = picket.load()                       # once per process, ~90 ms
+det = picket.load()                       # once per process
 
 # In an agent loop, the dangerous text is what a tool RETURNS, not what the user typed.
 page = fetch(url)
@@ -119,7 +119,7 @@ three numbers from the top, plus what they cost to run:
 | recall | **20–32%** — 32.4% counted by distinct PAYLOAD on the evaluation half (30.1% under leave-one-source-out), 19.8–29.5% counted by DOCUMENT. The range spans both denominators rather than picking the flattering one |
 | false positives | **0.03%** — 32 of 101 386 documents on the evaluation half |
 | speed | **2.17 ± 0.07 ms per 1000 characters through `check()`** — about 2.3 ms for a 1 KB letter, 6.7 ms for a 3 KB article, ON ONE CPU CORE, no GPU, ever |
-| startup | **92 ± 2 ms** for the whole command — interpreter, imports and ~17 ms of base — paid once per run, not per document |
+| startup | **92 ± 2 ms** for the whole command — paid once per run, not per document |
 | memory | **45.0 ± 1.3 MB + 0.231 ± 0.007 MB per KB** of the document being checked |
 | size | a single file of a few hundred KB, no dependencies |
 
@@ -248,8 +248,9 @@ ones you write about receiving.
 
 ### Speed: the other half of the argument
 
-**2.12 ± 0.04 ms per 1000 characters on one CPU core** — 2.39 ± 0.04 ms for a kilobyte-long letter,
-6.63 ± 0.08 ms for a three-kilobyte article. Not on a GPU: there is no GPU path and no need for one,
+**2.12 ± 0.04 ms per 1000 characters on one CPU core** — that is the matcher itself; through
+`check()`, the call you actually make, it is 2.17 ± 0.07, and the two agree within their intervals.
+About 2.3 ms for a kilobyte-long letter, 6.7 ms for a three-kilobyte article. Not on a GPU: there is no GPU path and no need for one,
 which is the point — the check runs on whatever machine your code already runs on, in some 45 MB
 of RAM for ordinary documents (a megabyte-long page costs more; the model is below).
 
@@ -323,8 +324,8 @@ Picket pays its floor per PROCESS instead, and the difference is the whole point
 
 | | floor | per document |
 |---|---|---|
-| **as a library** | none — the detector is raised once and then called | 2.39 ± 0.04 ms for a 1 KB letter |
-| **as the `aicordon` command** | **92 ± 2 ms** to start | the same 2.39 ± 0.04 ms |
+| **as a library** | none — the detector is raised once and then called | ~2.3 ms for a 1 KB letter |
+| **as the `aicordon` command** | **92 ± 2 ms** to start | the same ~2.3 ms |
 
 So an agent loop, a server or a queue pays nothing per check beyond the text itself. A pre-commit
 hook or a CI step pays the start once and then scans as fast as it reads — worth doing, with one
@@ -470,7 +471,7 @@ for rep in det.check_all(documents):   # streamed, input order preserved
 
 Four properties that decide whether this can sit inside somebody else's runtime:
 
-* **one instance, many callers.** `load()` costs ~90 ms and every `check` after it costs the text
+* **one instance, many callers.** `load()` is paid once, and every `check` after it costs the text
   alone. One detector per process, not per request.
 * **thread-safe.** Measured, not assumed: one instance called from eight threads over 400 documents
   returns exactly what the same calls return in sequence. Safe under a thread pool or a parallel
