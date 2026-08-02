@@ -8,10 +8,10 @@ version = "0.1.0"
 description = "Picket: a fast local signature detector for indirect prompt injection — a rule, no model, no network"
 readme = "README.md"
 requires-python = ">=3.10"
-# Автор — человек: юридического лица пока нет, а патентный грант Apache 2.0 выдаёт
-# правообладатель, и несуществующее лицо выдать его не может. «AI Cordon» остаётся именем
-# продукта в тексте и в выводе инструмента. Появится компания — права передаются, поле
-# меняется вместе с копирайтом в NOTICE.
+# The author is a person: there is no legal entity yet, and the Apache 2.0 patent grant is made by
+# the copyright holder — which a company that does not exist cannot do. "AI Cordon" remains the name
+# of the product, in the text and in what the tool prints. When there is a company, the rights are
+# assigned and this field changes together with the copyright in NOTICE.
 authors = [{ name = "Mikhail Gribov", email = "mihail.gribov.rs@gmail.com" }]
 # ONE license for the whole package, rule base included (decided 2026-07-31, canonical wording in
 # the product doc). Apache-2.0 rather than MIT for the explicit patent grant and the trademark
@@ -58,6 +58,6 @@ packages = ["src/aicordon"]
 exclude = ["/src/aicordon/intent"]
 
 [tool.hatch.build.targets.sdist]
-# Тот же список, что и для колеса: `exclude` в цели `wheel` на архив исходников не действует, и
-# `intent` уезжал в него незамеченным — при том что решение было его не поставлять.
+# The same list as for the wheel: `exclude` under the `wheel` target does not apply to the source
+# archive, and `intent` was travelling in it unnoticed — while the decision was not to ship it.
 exclude = ["/src/aicordon/intent"]

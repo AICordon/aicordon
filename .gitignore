@@ -1,3 +1,7 @@
+# Secrets never live next to code. This line is a fuse, not a description of what is here.
+.env
+.env.*
+
 __pycache__/
 *.py[cod]
 .venv/
@@ -5,22 +9,22 @@ dist/
 build/
 *.egg-info/
 
-# The injection bank and any datasets NEVER leave this repository: the bank is both a resource of the
-# project and its only honest held-out test. This is not a precaution "just in case" but insurance
-# against an accidental `git add` — memory is not something to rely on here.
+# The injection bank and any datasets never travel: the bank is both a resource of the project and
+# its only honest held-out test. Insurance against an accidental `git add`, not a precaution in the
+# abstract — memory is not the thing to rely on here.
 datasets/
 data/pools/
 *.jsonl
 
-# Исходники базы наружу НЕ ИДУТ: словари слотов и правило в JSON — это одновременно рецепт базы и
-# инструкция по её обходу. Требования читаемости правил у продукта нет; в выпуск идёт только
-# собранная база одним файлом (`src/aicordon/picket/data/*.bin`). Живут исходники в exp40/base.
+# The sources the base is built from stay out: the slot dictionaries and the rule file are at once
+# the recipe for the base and the instructions for walking around it. The product does not claim its
+# rules are readable; what ships is the built base, one file (`src/aicordon/picket/data/*.bin`).
 src/aicordon/picket/data/slots/
 src/aicordon/picket/data/*.json
 
-# Исследовательские записи живут в репозитории исследований и НАРУЖУ НЕ ИДУТ. Строка появилась не
-# из осторожности: `cat >> RESULTS.md` из этого каталога однажды уже положил сюда 51 строку русской
-# прозы про замеры. Пусть ошибка ловится git'ом, а не глазами.
+# Research notes live in the research repository and do not travel. This line is not caution in the
+# abstract: an append to RESULTS.md from this directory has already dropped fifty lines of
+# measurement prose in here once. Better the mistake is caught by git than by eye.
 RESULTS.md
 HANDOFF.md
 PLAN*.md

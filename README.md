@@ -88,7 +88,9 @@ page = fetch(url)
 rep = det.check(page)
 if rep.flagged:
     log.warning("injection in tool output: %s at %s", rep.threats, rep.span)
-    page = sanitise(page, rep)          # cut the findings out, or drop the page, or ask a human
+    for f in reversed(rep.findings):    # from the end, so the offsets ahead stay valid
+        lo, hi = f.span
+        page = page[:lo] + page[hi:]    # or drop the page, or ask a human
 ```
 
 The full interface — batching, async, threads, JSON — is in [The library interface](#the-library-interface).
@@ -279,7 +281,8 @@ with. The last line is deliberately not called a false-positive rate: your docum
 labels, so how often it fired is all anyone can honestly report.
 
 
-**The cost is linear in the size of the document** — 2.12 ± 0.04 ms per 1000 characters, with a
+**The cost is linear in the size of the document** — 2.12 ± 0.04 ms per 1000 characters at the
+matcher, as above, with a
 per-document constant of 0.27 ± 0.07 ms, and it does not care what the document contains. The two
 panels are measured separately, on 2 609 real documents: **2.17 ± 0.08** ms per 1000 characters
 without an injection, **2.08 ± 0.05** with one (95%). The difference is **0.09 ± 0.10**, which is

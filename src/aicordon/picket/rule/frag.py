@@ -82,20 +82,21 @@ def ent_hits(ents, hits, slots) -> list:
 
 
 def collapse_runs(hits) -> list:
-    """Хиты одного слота на ОДНОЙ И ТОЙ ЖЕ словесной позиции — один термин, а не сотня.
+    """Hits of one slot at THE SAME word position are one term, not a hundred of them.
 
-    Найдено замером скорости на реальных документах. Словарь границ содержит `---`, `----`,
-    `-----`; обычная разделительная линия в подписи письма даёт по хиту почти на каждый символ:
-    2 084 хита на письме в 3 КБ при обычных семидесяти на тысячу символов. Дальше они попарно
-    перебираются в `pairs`, и документ считается две секунды вместо трёх миллисекунд.
+    Found by timing real documents. The boundary dictionary holds `---`, `----`, `-----`, so an
+    ordinary rule of dashes in a mail signature produces a hit on very nearly every character:
+    2 084 hits in a 3 KB letter where seventy per thousand characters is normal. Those hits are then
+    paired off in `pairs`, and the document takes two seconds instead of three milliseconds.
 
-    Ключ схлопывания — (слот, начало, конец) В СЛОВАХ, а не перекрытие в символах. Это не
-    придирка к формулировке, а условие безвредности: все расстояния правила считаются в словах,
-    поэтому два хита одного слота, занимающих одни и те же словесные позиции, для правила
-    неразличимы — остаётся самый длинный. Схлопывание по перекрытию СИМВОЛОВ, наоборот,
-    отбрасывает хиты, стоящие на разных словах, и роняет recall (замерено: 19.8% → 12.2% на почте).
+    The collapsing key is (slot, start, end) IN WORDS rather than an overlap in characters. That is
+    not pedantry about wording but the condition under which this is harmless: every distance in a
+    rule is counted in words, so two hits of one slot occupying the same word positions are
+    indistinguishable to it and the longest may stand for them. Collapsing by CHARACTER overlap
+    instead throws away hits that sit on different words and costs recall — measured, 19.8% down to
+    12.2% on mail.
 
-    Разные слоты не трогаются: там перекрытие содержательно.
+    Different slots are left alone: there an overlap carries meaning.
     """
     best: dict[tuple, object] = {}
     for h in hits:
