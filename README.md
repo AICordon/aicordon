@@ -190,9 +190,10 @@ the time — a base plus a slope — and it was fitted the same way, over 12 siz
 which is about 237 times the size of the text on top of the base, because the normalised copy, the
 offset map, the token list and the hit list are all alive at once:
 
-| document | 1 KB | 100 KB | 200 KB | 500 KB | 1 MB |
-|---|---|---|---|---|---|
-| peak RSS | 42 MB | 71 MB | 94 MB | 163 MB | 271 MB |
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/memory-dark.png">
+  <img alt="Memory to check one document: peak RSS grows linearly with document size, 45 MB plus 0.23 MB per KB" src="docs/memory.png">
+</picture>
 
 The peak is set by the LARGEST document, not by their number: documents are checked one at a time,
 so a million small files cost what one of them costs. A megabyte-long page is what to watch —
