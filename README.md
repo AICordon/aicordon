@@ -157,16 +157,28 @@ Read the last row as the honest boundary: where attacks are genuinely rare, an a
 and the tool is a ROUTER — it decides what deserves the expensive check, not what gets deleted.
 Where they are not rare, an alarm is almost always real and can drive an action.
 
-**It locates what it finds**, well enough to cut it out rather than only flag it — see
-[the span](#the-span-where-it-points) for what that costs in precision. The response is therefore
-not limited to "drop the document":
+**It locates what it finds, so the document can be saved rather than dropped.** The instruction is
+what has to go; the page, the letter or the tool result around it is usually still the data you
+wanted. Cutting the span out — or masking it in place — removes the injection and keeps the rest:
 
 ```python
 rep = det.check(page)
 if rep.flagged:
     lo, hi = rep.span
-    page = page[:lo] + page[hi:]        # keep the document, remove the instruction
+    page = page[:lo] + page[hi:]                    # cut it out
+    # page = page[:lo] + "[removed]" + page[hi:]    # or mask it, keeping the offsets sane
 ```
+
+On real documents that leaves **79–94% of the text** in place at the default padding: the injected
+paragraph goes, the letter stays a letter.
+
+**What it does not guarantee.** The span holds the WHOLE payload in 64% of mail and 55% of news
+documents, so a cut sometimes leaves a tail of the instruction behind. `picket.load(span_pad=150)`
+widens it and cuts more thoroughly, at the price of the document — 54–81% of the text survives
+instead of 79–94%, and on a document only a few hundred characters long a widened span can swallow
+all of it. Choose by what the text is for; there is no setting that is right for both.
+
+And a cut is not a proof: what the tool did not find is still there, cut or no cut.
 
 **It costs nothing to leave switched on.** No GPU, no network call, no API key, no model to
 download, no dependency to resolve against your framework's pinned versions. Two milliseconds and
