@@ -9,9 +9,6 @@
 prompt injection: a rule that runs beside your code and needs nothing, no model, no network, no
 dependencies. It reads the SURFACE of the text and matches signatures. This package ships it.
 
-Signatures are one half of the job. The other half — reading MEANING, and seeing what a rule
-cannot — is a separate product and is not out yet: [ai-cordon.com](https://ai-cordon.com).
-
 > [!NOTE]
 > *Indirect prompt injection* — text planted in a page, a letter or a tool result so that the model
 > reading it acts on instructions its user never gave. Not the user's own prompt: the danger is in
@@ -42,11 +39,8 @@ panels measured separately so that the agreement is shown rather than asserted. 
 come from, and what a check costs in memory: [Measured](#measured-recall-false-positives-speed).
 
 > [!IMPORTANT]
-> **The injected instruction has to be in English.** The document itself can be in any language,
-> but the vocabulary the base recognises is English — so a payload written in German is not found,
-> and that report looks exactly like the report for a letter with nothing in it. This is the one
-> property that turns the tool into a no-op with no sign of it, which is why it is here and not
-> further down. See [Limits](#limits-what-it-is-not-and-what-it-does-not-catch).
+> **For now the detector sees English payloads only.** The document can be in any language; the
+> injected instruction has to be English. See [Limits](#limits-what-it-is-not-and-what-it-does-not-catch).
 
 * [Quick start](#quick-start)
 * [Where it belongs, and why nothing leaves the process](#where-it-belongs-and-why-nothing-leaves-the-process)
