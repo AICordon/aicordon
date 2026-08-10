@@ -93,7 +93,7 @@ def banner(st: Style, product, detector, ready: bool, reason: str = "", selectio
     if product.art:
         lines.append("")                       # the two wordmarks must not read as one drawing
         lines.append(st(product.art.strip("\n"), DIM, CYAN))
-    lines.append(st(f"  {product.vendor} · {product.title} · {product.version}", DIM))
+    lines.append(st(f"  {product.vendor} {product.title} · {product.version}", DIM))
     lines.append(st(f"  {product.tagline}", DIM))
     lines.append("")
     mark = st("●", GREEN) if ready else st("○", DIM)

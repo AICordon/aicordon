@@ -435,7 +435,9 @@ def cmd_version(product: Product, a) -> int:
     """Always works, even when the engine did not come up: the tool version does not depend on the
     base."""
     st = render.make_style(a.no_color)
-    print(f"  {product.title} {product.version} · {product.vendor}")
+    # ПОЛНОЕ имя продукта: «AI Cordon Picket», а не «Picket от AI Cordon». Вендор и название
+    # неразделимы — по отдельности «Picket» ничего не значит и уже занято на PyPI чужим пакетом.
+    print(f"  {product.vendor} {product.title} {product.version}")
     try:
         det = _build(product, a)
         # The schema is printed next to the version because the two answer different questions: the
