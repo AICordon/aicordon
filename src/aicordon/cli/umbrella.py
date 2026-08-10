@@ -35,7 +35,7 @@ from .main import COMMANDS, EXIT_ENGINE, EXIT_OK, EXIT_USAGE, Selection, run
 # and two different libraries answering to one import name is a failure nobody debugs quickly.
 PRODUCT_MODULES = ("aicordon.picket", "aicordon.intent")
 
-VERSION = "0.1.0"
+from ..core import VERSION  # noqa: F401 — one source for the version
 
 HELP = """  aicordon — indirect prompt injection (IPI) detectors by AI Cordon
 

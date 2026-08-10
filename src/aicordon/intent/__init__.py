@@ -52,7 +52,7 @@ def _build(**kw):
     return load(**kw)
 
 
-VERSION = "0.1.0"
+from ..core import VERSION  # noqa: F401 — one source for the version
 
 ART = r"""
    ____     __            __

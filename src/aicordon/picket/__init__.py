@@ -71,7 +71,7 @@ def _build(**kw):
     from .detector import load
     return load(**kw)
 
-VERSION = "0.1.0"
+from ..core import VERSION  # noqa: F401 — one source for the version
 
 ART = r"""
    ___   _ __        __
