@@ -31,8 +31,8 @@ LIMITS = (
     "words is not seen",
     "obfuscation: split words, substituted characters, an encoded payload",
     "injections inside code and markup — a separate axis the rule does not have",
-    "completeness in general: by construction the rule misses two thirds of the injections in its "
-    "own bank",
+    "completeness in general: by construction the rule misses more than half of the injections "
+    "in its own bank",
 )
 
 

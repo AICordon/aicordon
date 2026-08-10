@@ -1,52 +1,49 @@
 # Changelog
 
-Two things are versioned here and they move independently.
+## 0.2.0 — 2026-08-10
 
-**The package** — this file, semantic versioning. **The base** — dated instead of
-numbered (`engine_v1_20260731_b1`): its version answers "how fresh", which a
-sequence number cannot, and it changes on its own schedule. Which base a build
-shipped with is recorded in each entry below and printed by
-`aicordon picket version`.
+### Rules got more expressive
+
+A rule can now constrain not only *what* it matches but *where* the parts of a match sit relative to
+one another. Matches whose parts are scattered across a document no longer count.
+
+**Fewer false alarms, the same catches, the same speed.** On the same evaluation half the previous
+base was measured on: **26 false positives out of 101 386, down from 32**, with recall unchanged —
+no detection is lost. Timing is unchanged as well: 1.591 ± 0.255 ms per 1000 characters against
+1.594 ± 0.255 for 0.1.0, measured on the same documents and the same core.
+
+If you were splitting documents into overlapping windows before handing them to Picket, you no
+longer need to: the detector does the equivalent itself, in a single pass over the text.
+
+### Base format: schema 2
+
+The rules gained a field, so a base carrying it declares schema 2.
+
+* A **schema 1 base loads unchanged** in this version and scans exactly as it did.
+* A **schema 2 base is refused by 0.1.x** rather than read — a rule set whose working point was
+  measured with the new field would behave differently in a tool that cannot see it, and the
+  numbers on the box would then belong to a different detector.
+
+### Spans are tighter
+
+The reported span of a finding is now the tightest region covering the match, rather than one
+assembled from each part independently. The old choice could anchor a span on a fragment far from
+the rest of the match. Verdicts are unaffected; on our corpus 8.6% of spans narrow, some
+considerably.
+
+### The recall figure was re-derived
+
+The previous base published recall as 32.37%. That figure came from a measurement pipeline
+assembled differently from the one that ships; scanning the shipped rules directly gives the number
+the base now reports. **The rules did not change — only how they were measured.** The wording in the
+README stays conservative on purpose.
+
+### Compatibility
+
+The rules themselves are the 25 frozen on 2026-07-31, unchanged. The library and CLI surfaces are
+unchanged. Verified on 12 000 documents: no verdict differs from 0.1.0.
 
 ## 0.1.0 — 2026-08-02
 
-First release. Base `20260731`.
-
-### The detector
-
-* `aicordon picket scan` — indirect prompt injection by signature: no model, no
-  network, no dependencies. Working point measured on sources and payloads that
-  took no part in building it: **0.03% false alarms**, **20–32%** of the
-  injections caught, on one CPU core at **2.17 ± 0.07 ms per 1000 characters**.
-* Findings carry offsets, so a payload can be cut out or masked rather than the
-  document dropped. `--span-pad` trades how much of the payload is covered
-  against how much innocent text goes with it.
-* Threat names come from the base rather than from the code, so a name printed a
-  year ago can still be matched to the rule that produced it.
-
-### The shell
-
-* One command, `aicordon`, with the product as the first argument; the product,
-  the command and the input are filled in when that can be done unambiguously,
-  and an implicit choice is signed in the report.
-* `scan`, `check`, `explain`, `coverage`, `version`, `bench`.
-* Exit codes: `0` nothing found · `1` findings · `2` usage error · `3` engine
-  unavailable. There is no verdict "clean" and no `is_safe` field — at this
-  recall a field you could believe in reverse would build a falsehood into the
-  API.
-* `bench` measures the detector on your own documents and reports the cost model
-  with its intervals, a JSON report and an SVG chart — no dependencies involved.
-
-### The library
-
-* `picket.load()`, `check`, `check_all`, `reports`; `acheck`/`acheck_all` for
-  code in an event loop; `Report.to_json`/`from_json`. Thread-safe: one detector
-  serves several threads and returns what the same calls return in sequence.
-* `py.typed`, and no dependencies at all — nothing to resolve against whatever
-  your framework pins.
-
-### Not in this release
-
-* `aicordon.intent`, the semantic detector: the API behind it does not exist
-  yet, and a stub in a release would read as "get a key and it works".
-* SARIF output, and adapters for AI frameworks.
+First release: the signature detector, the CLI, the library interface, `bench`, and the rule base as
+a single binary file.

@@ -266,9 +266,14 @@ def pairs(low: str, toks, hits, sink, keep, breaks, starts, tokmask, spans=None)
                 # features (`ctx.py`) are computed around it: computed on the span of all hits they
                 # degenerate — `boundary` came out 99.8% on positives and 100.0% on clean text,
                 # because such a span almost always touches the start or the end of the document.
+                #
+                # EVERY occurrence is kept, not the shortest one. A rule with an aperture asks
+                # whether some pair of occurrences of its edges stands CLOSE TOGETHER, and one
+                # occurrence per edge answers a different question: the shortest occurrence of an
+                # edge can sit in the page header while a slightly longer one stands right beside
+                # the second edge, and the rule would be judged on the wrong pair. Each (h, g) is
+                # enumerated once, so the list has no duplicates to guard against.
                 lo_, hi_ = min(h.lo, g.lo), max(h.hi, g.hi)
-                prev = spans.get((h.slot, key))
-                if prev is None or hi_ - lo_ < prev[1] - prev[0]:
-                    spans[(h.slot, key)] = (lo_, hi_)
+                spans.setdefault((h.slot, key), []).append((lo_, hi_))
 
 

@@ -18,7 +18,7 @@ dependencies. It reads the SURFACE of the text and matches signatures. This pack
 
 | | |
 |---|---|
-| **false alarms** | **0.03%** — 32 per 100 000 documents |
+| **false alarms** | **0.026%** — 26 per 100 000 documents |
 | **catches** | **20–32%** of the injections tested |
 | **span** | **0.98–1.00** of the payload covered · IoU 0.51–0.59 |
 | **speed** | **2.17 ± 0.07 ms** per 1000 characters through `check()` · one CPU core |
@@ -108,7 +108,7 @@ three numbers from the top, plus what they cost to run:
 | | |
 |---|---|
 | recall | **20–32%** of the injections in our own corpus — the range spans counting by distinct payload and by document, rather than quoting the flattering one |
-| false positives | **0.03%** — 32 of 101 386 documents on the evaluation half |
+| false positives | **0.026%** — 26 of 101 386 documents on the evaluation half |
 | speed | **2.17 ± 0.07 ms per 1000 characters through `check()`** — about 2.3 ms for a 1 KB letter, 6.7 ms for a 3 KB article |
 | startup | **92 ± 2 ms** for the whole command — paid once per run, not per document |
 | memory | **45.0 ± 1.3 MB + 0.231 ± 0.007 MB per KB** of the document being checked |

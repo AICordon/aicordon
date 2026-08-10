@@ -10,7 +10,7 @@ order, which is why "ignore" in "Can I ignore this warning?" does not fire (meas
 0 false positives out of 339).
 
 The scope is English; on non-English text recall is zero (see `scope` in the base). The measured
-working point: recall 32.4% at FPR 0.0316% on unseen sources and unseen seeds.
+working point: FPR 0.0256% on unseen sources and unseen seeds, at the recall the base reports.
 
     echo "text" | python3 -m aicordon.picket.rule.scan
     python3 -m aicordon.picket.rule.scan letter.txt page.html
@@ -26,6 +26,8 @@ both go through the same `Scanner`, so their verdicts cannot diverge.
 from __future__ import annotations
 
 import argparse
+import bisect
+import itertools
 import json
 import re
 import sys
@@ -33,7 +35,7 @@ import time
 from pathlib import Path
 
 from . import compiled
-from .frag import collect, merge_hits, tokens_of
+from .frag import PARA, collect, merge_hits, tokens_of
 from .l2 import Engine
 from .norm import normalize
 
@@ -45,7 +47,16 @@ SLOTS = DATA / "slots"
 # code depends on — a new required field, a different shape of `rules`. A base that declares a
 # higher number is refused rather than read: a tool that quietly ignores fields it does not know
 # turns a format change into a wrong verdict, and a detector is the wrong place to guess.
-BASE_SCHEMA = 1
+BASE_SCHEMA = 2
+
+# Schema 2 added `aperture` to a rule: the widest span its edges may cover together. The field is
+# optional and its absence means no limit, so a base written to schema 1 scans exactly as it always
+# did — the compatibility that matters here runs FORWARDS, a new tool over an old rule set.
+#
+# Backwards it deliberately does not run, and the version number is what stops it: a rule set whose
+# working point was measured WITH apertures would fire far more often in a tool that cannot see the
+# field, and the numbers on the box would belong to a different detector. Refusing to load says so;
+# ignoring an unknown field would not.
 
 # <what>_v<schema>_<YYYYMMDD>_b<build>.<ext> — what the base is readable BY, when it was formed,
 # and which freeze of that day it is. All three are in the name so a base can be told apart in a
@@ -61,6 +72,68 @@ BASE_RE = re.compile(r"^(rule|engine)_v(\d+)_(\d{8})_b(\d+)\.(json|bin)$")
 # higher IoU on both pools, the median recall rising from 0.44 to ~1.0. So `--span-pad` is counted
 # from here: 0 is the measured optimum, positive widens, negative goes back to the raw hull.
 SPAN_BASE = 50
+
+# `scan(aperture=...)`: take the aperture the BASE declares. The aperture is a property of the rule
+# set, not a knob of the call — a base frozen at N characters has its recall and its FPR measured at
+# N, and a caller who passes another number is holding a detector nobody measured. `None` lifts the
+# limit, an integer sets one; both exist for measurement.
+FROM_BASE = "base"
+
+# `_probe` only: how many placements of one rule are enumerated exactly before the occurrence lists
+# are cut. Verdicts never depend on it — `min_hull` is exact and linear; this bounds the measurement
+# hook, where every metric is minimised over placements separately and so cannot share that walk.
+PROBE_CAP = 20_000
+
+
+def min_hull(occurrences: list[list[tuple[int, int]]]) -> tuple[int, list[tuple[int, int]]] | None:
+    """The tightest region covering one occurrence of EVERY edge: (width, the chosen occurrences).
+
+    An edge is a pair of terms a few tokens apart, so an edge is local by construction. A rule,
+    however, is a conjunction of two of them, and until there was an aperture the two could stand at
+    opposite ends of the document: the rule fired on a CHANCE MEETING of two independent edges, and
+    the longer the text the likelier that meeting. That is what the aperture cuts off, and cutting it
+    off needs the tightest placement rather than any placement.
+
+    Exact and linear after the sort. For a fixed left boundary L the best choice per edge is the
+    occurrence with `lo >= L` and the smallest `hi`, so scanning the candidate boundaries downwards
+    with a suffix minimum of `hi` per edge visits the optimum: every selection has such an L — the
+    `lo` of its own leftmost occurrence.
+
+    `None` when some edge has no occurrence to place, which leaves the caller to decide; here the
+    rule fires unmeasured rather than being dropped on a missing coordinate.
+    """
+    if not occurrences or not all(occurrences):
+        return None
+    lists = [sorted(o) for o in occurrences]
+    # suffix[i][j] — which occurrence at or past j has the smallest `hi`
+    suffix = []
+    for lst in lists:
+        best, s = len(lst) - 1, [0] * len(lst)
+        for i in range(len(lst) - 1, -1, -1):
+            if lst[i][1] < lst[best][1]:
+                best = i
+            s[i] = best
+        suffix.append(s)
+
+    ptr = [len(lst) for lst in lists]          # first index with lo >= L, moves left as L falls
+    out = None
+    for L in sorted({lo for lst in lists for lo, _ in lst}, reverse=True):
+        placed = True
+        for i, lst in enumerate(lists):
+            # Every pointer is advanced, including those of edges already out of the running: a
+            # pointer skipped on one boundary would be wrong on all the smaller ones.
+            while ptr[i] > 0 and lst[ptr[i] - 1][0] >= L:
+                ptr[i] -= 1
+            placed = placed and ptr[i] < len(lst)
+        if not placed:
+            continue
+        pick = [lists[i][suffix[i][ptr[i]]] for i in range(len(lists))]
+        # Measured on the choice itself, not as `max(hi) - L`: past its own optimum that boundary
+        # overstates the width, and the report would name a region wider than the one it points at.
+        width = max(hi for _, hi in pick) - min(lo for lo, _ in pick)
+        if out is None or width < out[0]:
+            out = (width, pick)
+    return out
 
 
 def bases(directory: Path | None = None, kind: str = "bin") -> list[tuple[int, str, int, Path]]:
@@ -207,55 +280,108 @@ class Scanner:
     def __init__(self, base_path: Path | None = None):
         self.eng, self.rules, self.spec, self.source = build(base_path or pick_base())
         self.needed = {e for r in self.rules for e in r}
+        # The aperture of each rule, `None` where the rule does not limit its own span. A base
+        # written to schema 1 has none at all and therefore scans exactly as it did before this
+        # field existed — which is the point: a rule set keeps its measured working point when the
+        # tool around it grows a capability the set never asked for.
+        self.apertures = [r.get("aperture") for r in self.spec["rules"]]
+        # An aperture stated as a fraction of the paragraph the placement starts in. Measured and
+        # not shipped in this base: tying the limit to markup makes the same number mean different
+        # things in a letter and on a page without blank lines, and it cost several points of recall
+        # where a limit in characters cost none. The field stays readable because a base is free to
+        # carry either form, both, or neither.
+        self.aperture_fracs = [r.get("aperture_frac") for r in self.spec["rules"]]
 
-    def scan(self, text: str, pad: int = 0) -> dict:
+    def _places(self, text: str, lo_limit: int = -1, hi_limit: int = -1):
+        """Where every edge of the base occurs — all occurrences, in NORMALISED coordinates.
+
+        `lo_limit`/`hi_limit` confine the hits to a region of the ORIGINAL text and exist for
+        measurement: on a document with a known payload the question "did the rule fire" has to be
+        asked of the payload, or a rule is credited for something it found in the carrier around it.
+        A verdict never uses them — a real document arrives without its payload marked.
+
+        The geometry of a rule is measured here rather than in the original text on purpose. What
+        normalisation removes is padding: zero-width characters, repeated spacing, the decorations
+        that pull a construction apart on the page while leaving it one construction to a reader. An
+        aperture counted in original characters would be widened by exactly that padding, and
+        widening it is how one would get around it. Counted after normalisation it is not.
+
+        Returns `(n, breaks, found)`: the normalisation with its offset map, the paragraph breaks,
+        and edge -> every occurrence of it.
+        """
+        n = normalize(text)
+        low = n.text.lower()
+        toks, ents = tokens_of(low)
+        hits = merge_hits(self.eng.hits(low), ents, self.eng.slots)
+        local = collect(low, toks, hits, lo_limit, hi_limit, n.src)
+        spans = local.get("pair_spans", {})
+
+        found: dict[tuple, list[tuple[int, int]]] = {}
+        for slot, c in local["pairs"].items():
+            for key in c:
+                k = canon(slot, key)
+                if k in self.needed:
+                    found.setdefault(k, []).extend(spans.get((slot, key), ()))
+        return n, [m.start() for m in PARA.finditer(low)], found
+
+    def scan(self, text: str, pad: int = 0, aperture=FROM_BASE) -> dict:
         """Verdict, fired rules and offsets — in coordinates of the ORIGINAL text.
 
         `pad` is counted from the measured optimum `SPAN_BASE`, not from the raw hull of the rules:
         0 is the optimum, a positive value widens (200 in total is what the cropping branch needs),
         a negative one narrows down to `-SPAN_BASE`, which is exactly the raw hull. The trade-off
         the trade-off is a smooth curve, measured against the true payload boundaries.
-        """
-        n = normalize(text)
-        low = n.text.lower()
-        toks, ents = tokens_of(low)
-        hits = merge_hits(self.eng.hits(low), ents, self.eng.slots)
-        local = collect(low, toks, hits, -1, -1, n.src)
-        spans = local.get("pair_spans", {})
 
-        found: dict[tuple, tuple[int, int]] = {}
-        for slot, c in local["pairs"].items():
-            for key in c:
-                k = canon(slot, key)
-                if k not in self.needed:
-                    continue
-                sp = spans.get((slot, key))
-                if sp is None:
-                    found.setdefault(k, (-1, -1))
-                    continue
-                lo, hi = sp
-                # The span is computed in normalised coordinates; the `src` map takes it back to
-                # the original text, or the offsets would match no external tool.
-                src_lo = n.src[lo] if lo < len(n.src) else -1
-                src_hi = (n.src[hi - 1] + 1) if 0 < hi <= len(n.src) else -1
-                prev = found.get(k)
-                if prev is None or prev == (-1, -1) or (src_hi - src_lo) < (prev[1] - prev[0]):
-                    found[k] = (src_lo, src_hi)
+        `aperture` is `FROM_BASE` — every rule limited by its own, which is what a measured base
+        means; `None` — no limit at all; an integer — that same limit on every rule, overriding the
+        base. The last two exist for measurement: a caller who overrides the aperture is holding a
+        detector whose recall and FPR nobody has measured.
+        """
+        n, breaks, found = self._places(text)
+
+        def to_src(lo: int, hi: int) -> tuple[int, int]:
+            # The map takes normalised coordinates back to the original text, or the offsets would
+            # match no external tool.
+            return (n.src[lo] if lo < len(n.src) else -1,
+                    (n.src[hi - 1] + 1) if 0 < hi <= len(n.src) else -1)
 
         fired = []
         for ri, r in enumerate(self.rules):
-            if all(e in found for e in r):
-                ev = [{"edge": f"{e[0]} -{e[4] or '~'}-> {e[1]}", "side": e[2], "distance": e[3],
-                       "span": list(found[e]),
-                       "text": text[found[e][0]:found[e][1]] if found[e][0] >= 0 else ""}
-                      for e in r]
-                lo = min(x["span"][0] for x in ev if x["span"][0] >= 0) if any(
-                    x["span"][0] >= 0 for x in ev) else -1
-                hi = max(x["span"][1] for x in ev) if ev else -1
-                # `index` is the position of the rule in the base. A consumer needs it to take the
-                # threat name and severity from there; matching by the text of edges would be brittle.
-                fired.append({"kind": "conjunction" if len(r) > 1 else "single", "index": ri,
-                              "edges": ev, "raw_span": [lo, hi], "span": [lo, hi]})
+            if not all(e in found for e in r):
+                continue
+            limit = self.apertures[ri] if aperture == FROM_BASE else aperture
+            frac = self.aperture_fracs[ri] if aperture == FROM_BASE else None
+            best = min_hull([found[e] for e in r])
+            if best is None:
+                # No coordinates to place the rule by. It fires unmeasured rather than being
+                # dropped: an aperture is a reason to reject a PLACEMENT, and having none is not a
+                # placement that failed.
+                hull, pick = None, [(-1, -1)] * len(r)
+            else:
+                hull, pick = best
+                if limit is not None and hull > limit:
+                    continue
+                if frac is not None:
+                    lo0 = min(s[0] for s in pick)
+                    j = bisect.bisect_right(breaks, lo0)
+                    left = breaks[j - 1] if j else 0
+                    right = breaks[j] if j < len(breaks) else len(n.text)
+                    if hull > frac * max(1, right - left):
+                        continue
+            ev = []
+            for e, sp in zip(r, pick):
+                lo, hi = to_src(*sp) if sp[0] >= 0 else (-1, -1)
+                ev.append({"edge": f"{e[0]} -{e[4] or '~'}-> {e[1]}", "side": e[2],
+                           "distance": e[3], "span": [lo, hi],
+                           "text": text[lo:hi] if lo >= 0 else ""})
+            good = [x["span"] for x in ev if x["span"][0] >= 0]
+            lo = min(s[0] for s in good) if good else -1
+            hi = max(s[1] for s in good) if good else -1
+            # `index` is the position of the rule in the base. A consumer needs it to take the
+            # threat name and severity from there; matching by the text of edges would be brittle.
+            fired.append({"kind": "conjunction" if len(r) > 1 else "single", "index": ri,
+                          "edges": ev, "hull": hull, "aperture": limit,
+                          "raw_span": [lo, hi], "span": [lo, hi]})
 
         # `grow` is the measured optimum, and it belongs to EVERY span the caller is shown, not only
         # to the document one. It used to be applied to the document span alone, so a report of a
@@ -282,6 +408,78 @@ class Scanner:
         span = [min(s[0] for s in good), max(s[1] for s in good)] if good else [-1, -1]
         return {"flagged": bool(fired), "n_rules": len(fired), "span": span,
                 "span_pad": pad, "span_grow": max(-SPAN_BASE, pad) + SPAN_BASE, "rules": fired}
+
+    def _probe(self, text: str, lo_limit: int = -1, hi_limit: int = -1) -> list[dict]:
+        """The geometry of every rule that fires LEXICALLY — the measurement hook, not public API.
+
+        `scan` answers whether a rule fired. Choosing an aperture asks a different question: of the
+        placements a rule has in this document, what does the tightest one look like — how wide, how
+        far in, inside one paragraph or across several. It has to be asked of the rules an aperture
+        would drop as well, since those are precisely the ones being decided about.
+
+        Every metric is minimised over placements SEPARATELY, and that is not pedantry: the narrowest
+        placement need not be the one that stays inside a paragraph. A pair of short paragraphs puts
+        two edges 40 characters apart with a break between them, while the placement that shares a
+        paragraph sits 300 apart — report the first one's width against the first one's paragraph
+        count and the record describes a placement that does not exist.
+
+        `lo_limit`/`hi_limit` confine the hits to a region of the original text, as in `_places`: the
+        geometry of a payload has to be read off the payload, not off the page carrying it.
+
+        Private, and absent from the CLI and the library surface, for the reason `catalog()` was
+        removed: the shape of a rule is an instruction for getting around it.
+        """
+        n, breaks, found = self._places(text, lo_limit, hi_limit)
+        nl = [i for i, ch in enumerate(n.text) if ch == "\n"]
+        out = []
+        for ri, r in enumerate(self.rules):
+            if not all(e in found for e in r):
+                continue
+            occ = [sorted(found[e]) for e in r]
+            combos = 1
+            for o in occ:
+                combos *= max(1, len(o))
+            if combos > PROBE_CAP:
+                # Enumerating every placement is exact, and on a page that repeats the same
+                # construction hundreds of times it is also a product of hundreds. The cut keeps the
+                # earliest occurrences of each edge and is RECORDED: a cut nobody sees reads as a
+                # measured value.
+                occ = [o[:max(2, int(PROBE_CAP ** (1 / len(occ))))] for o in occ]
+            rec = {"index": ri, "n_edges": len(r), "placements": combos, "capped": combos > PROBE_CAP,
+                   "doc_len": len(text), "doc_len_norm": len(n.text), "n_paras": len(breaks) + 1}
+            best = min_hull(occ)
+            if best is None:
+                out.append({**rec, "hull": None})
+                continue
+            rec["hull"], pick = best
+            lo, hi = min(s[0] for s in pick), max(s[1] for s in pick)
+            rec["at"] = lo
+            rec["at_frac"] = round(lo / max(1, len(n.text)), 6)
+            # The same width in the ORIGINAL text, purely so the record can be laid beside numbers
+            # taken by cutting documents into character windows. The aperture itself is decided on
+            # `hull`, which padding cannot inflate.
+            src_lo = n.src[lo] if lo < len(n.src) else -1
+            src_hi = n.src[hi - 1] + 1 if 0 < hi <= len(n.src) else -1
+            rec["hull_src"] = src_hi - src_lo if src_lo >= 0 else rec["hull"]
+            rec["order"] = "".join(str(i) for i, _ in sorted(enumerate(pick), key=lambda t: t[1]))
+            # The paragraph the tightest placement starts in, for an aperture expressed in units of
+            # the element rather than in characters: a paragraph is a page-long block on the web and
+            # three lines in a letter, and the same number of characters means different things.
+            j = bisect.bisect_right(breaks, lo)
+            rec["para_len"] = (breaks[j] if j < len(breaks) else len(n.text)) \
+                - (breaks[j - 1] if j else 0)
+            # Minimised over placements, each on its own.
+            for name, marks in (("paras", breaks), ("lines", nl)):
+                best_cross, best_width = None, None
+                for combo in itertools.product(*occ):
+                    a, b = min(s[0] for s in combo), max(s[1] for s in combo)
+                    c = bisect.bisect_left(marks, b) - bisect.bisect_left(marks, a)
+                    if best_cross is None or (c, b - a) < (best_cross, best_width):
+                        best_cross, best_width = c, b - a
+                rec[name] = best_cross
+                rec[f"{name}_hull"] = best_width
+            out.append(rec)
+        return out
 
 
 def report(name: str, res: dict, text: str) -> None:
