@@ -1,8 +1,8 @@
 # AI Cordon
 
-[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/AICordon/aicordon/blob/main/LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/downloads/)
-[![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](pyproject.toml)
+[![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](https://github.com/AICordon/aicordon/blob/main/pyproject.toml)
 [![Network calls](https://img.shields.io/badge/network%20calls-none-brightgreen.svg)](#where-it-belongs-and-why-nothing-leaves-the-process)
 
 **AI Cordon Picket** — Picket for short — is a fast local **signature detector** for indirect
@@ -30,8 +30,8 @@ Rounded; the exact figures with their denominators are printed by `aicordon pick
 recall this low is worth running: [the pair, not the number](#why-a-third-is-worth-having).
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/speed-dark.png">
-  <img alt="Time to check one document: the cost grows linearly with document size, about 2.1 ms per 1000 characters" src="docs/speed.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/AICordon/aicordon/main/docs/speed-dark.png">
+  <img alt="Time to check one document: the cost grows linearly with document size, about 2.1 ms per 1000 characters" src="https://raw.githubusercontent.com/AICordon/aicordon/main/docs/speed.png">
 </picture>
 
 The cost is the same whether the document carries an injection or not — 2 609 real documents, two
@@ -291,8 +291,8 @@ which is about 237 times the size of the text on top of the base, because the no
 offset map, the token list and the hit list are all alive at once:
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/memory-dark.png">
-  <img alt="Memory to check one document: peak RSS grows linearly with document size, 45 MB plus 0.23 MB per KB" src="docs/memory.png">
+  <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/AICordon/aicordon/main/docs/memory-dark.png">
+  <img alt="Memory to check one document: peak RSS grows linearly with document size, 45 MB plus 0.23 MB per KB" src="https://raw.githubusercontent.com/AICordon/aicordon/main/docs/memory.png">
 </picture>
 
 The peak is set by the LARGEST document, not by their number: documents are checked one at a time,
