@@ -18,25 +18,30 @@ dependencies. It reads the SURFACE of the text and matches signatures. This pack
 
 | | |
 |---|---|
-| **false alarms** | **0.026%** — 26 per 100 000 documents |
-| **catches** | **20–32%** of the injections tested |
+| **false alarms** | **0.098%** — 98 per 100 000 documents |
+| **catches** | **16.4%** of the injections in an open corpus |
 | **span** | **0.98–1.00** of the payload covered · IoU 0.51–0.59 |
-| **speed** | **2.17 ± 0.07 ms** per 1000 characters through `check()` · one CPU core |
-| **memory** | **45 MB** + 0.23 MB per KB of the document |
-| **startup** | **92 ± 2 ms** per process · nothing per call |
+| **speed** | **2.29 ± 0.09 ms** per 1000 characters through `check()` · one CPU core |
+| **memory** | **47 MB** + 0.27 MB per KB of the document |
+| **startup** | **119 ms** per process · nothing per call |
 | **needs** | no GPU · no network · no key · no dependencies |
 
-Rounded; the exact figures with their denominators are printed by `aicordon picket coverage`. Why a
-recall this low is worth running: [the pair, not the number](#why-a-third-is-worth-having).
+Rounded; recall and false alarms are measured on [Quadrat-IPI
+v1.0.1](https://huggingface.co/datasets/mihailgribov/quadrat-ipi) — 16 800 injections and 63 000
+clean documents, published with its harness — and the full report, grid by grid, is in
+[docs/eval](https://github.com/AICordon/aicordon/blob/main/docs/eval/quadrat-ipi-v1.0.1.md). Why a recall this low is worth running: [the pair, not
+the number](#why-a-sixth-is-worth-having).
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/AICordon/aicordon/main/docs/speed-dark.png">
-  <img alt="Time to check one document: the cost grows linearly with document size, about 2.1 ms per 1000 characters" src="https://raw.githubusercontent.com/AICordon/aicordon/main/docs/speed.png">
+  <img alt="Time to check one document: the cost grows linearly with document size, about 2.3 ms per 1000 characters" src="https://raw.githubusercontent.com/AICordon/aicordon/main/docs/speed.png">
 </picture>
 
-The cost is the same whether the document carries an injection or not — 2 609 real documents, two
-panels measured separately so that the agreement is shown rather than asserted. Where the numbers
-come from, and what a check costs in memory: [Measured](#measured-recall-false-positives-speed).
+Two panels over 4 800 real documents, measured separately: 2.32 ± 0.10 ms per 1000 characters on the
+injected half, 2.13 ± 0.13 on the clean one. The gap is the text and not the verdict — the cost
+follows how many dictionary hits a corpus produces, and the halves are different corpora. Where the
+numbers come from, and what a check costs in memory:
+[Measured](#measured-recall-false-positives-speed).
 
 > [!IMPORTANT]
 > **For now the detector sees English payloads only.** The document can be in any language; the
@@ -45,7 +50,7 @@ come from, and what a check costs in memory: [Measured](#measured-recall-false-p
 * [Quick start](#quick-start)
 * [Where it belongs, and why nothing leaves the process](#where-it-belongs-and-why-nothing-leaves-the-process)
 * [Measured: recall, false positives, speed](#measured-recall-false-positives-speed)
-  * [Why a third is worth having](#why-a-third-is-worth-having)
+  * [Why a sixth is worth having](#why-a-sixth-is-worth-having)
   * [The span: where it points](#the-span-where-it-points)
   * [False positives: it fires on this README](#false-positives-it-fires-on-this-readme)
   * [Speed: the other half of the argument](#speed-the-other-half-of-the-argument)
@@ -61,7 +66,7 @@ come from, and what a check costs in memory: [Measured](#measured-recall-false-p
 
 ```console
 $ pip install aicordon
-$ aicordon page.html              # the same detector, with a report
+$ aicordon retrieved.md           # a document your code pulled in — the same detector, with a report
 $ aicordon picket scan --jsonl documents.jsonl --field text --json
 ```
 
@@ -102,17 +107,20 @@ premises as well as over the API, so upgrading the detection does not mean givin
 
 ## Measured: recall, false positives, speed
 
-The working point in full, on sources and payloads that took no part in building the tool — the
-three numbers from the top, plus what they cost to run:
+The working point in full — the three numbers from the top, plus what they cost to run:
 
 | | |
 |---|---|
-| recall | **20–32%** of the injections in our own corpus — the range spans counting by distinct payload and by document, rather than quoting the flattering one |
-| false positives | **0.026%** — 26 of 101 386 documents on the evaluation half |
-| speed | **2.17 ± 0.07 ms per 1000 characters through `check()`** — about 2.3 ms for a 1 KB letter, 6.7 ms for a 3 KB article |
-| startup | **92 ± 2 ms** for the whole command — paid once per run, not per document |
-| memory | **45.0 ± 1.3 MB + 0.231 ± 0.007 MB per KB** of the document being checked |
+| recall | **16.4%** of 16 800 injections on [Quadrat-IPI v1.0.1](https://huggingface.co/datasets/mihailgribov/quadrat-ipi), counted by document · CI 15.8–17.0 |
+| false positives | **0.098%** — 62 of 63 000 clean documents of the same corpus |
+| speed | **2.29 ± 0.09 ms per 1000 characters through `check()`** — about 2.4 ms for a 1 KB letter, 6.9 ms for a 3 KB article |
+| startup | **119 ms** for the whole command — paid once per run, not per document |
+| memory | **47.4 ± 1.5 MB + 0.269 ± 0.007 MB per KB** of the document being checked |
 | size | a single file of a few hundred KB |
+
+The corpus is open and so is the harness, so this row can be reproduced rather than believed: the
+report it comes from, with the 92-cell grid per carrier and the other detectors measured beside it,
+is in [docs/eval](https://github.com/AICordon/aicordon/blob/main/docs/eval/quadrat-ipi-v1.0.1.md).
 
 Rounded on purpose: every one of these moves when the base is refrozen, and a README quoting four
 decimal places goes stale quietly. The exact figures live in the base and are printed by the tool
@@ -125,27 +133,28 @@ $ aicordon picket coverage
 Mind the denominator when you compare: recall counted by distinct PAYLOAD comes out higher than
 recall counted by DOCUMENT, and both are honest. `coverage` says which one it reports.
 
-### Why a third is worth having
+### Why a sixth is worth having
 
-A quarter sounds like a failing grade until you ask what it costs and what it lets you DO. Recall is
+A sixth sounds like a failing grade until you ask what it costs and what it lets you DO. Recall is
 the number people look at; the pair is the number that decides whether the thing is usable.
 
-**32 false alarms per 100 000 documents make the response automatable.** A detector that
+**98 false alarms per 100 000 documents make the response automatable.** A detector that
 flags 5% of ordinary traffic can only raise a ticket — somebody has to look. At this rate you can
 act on a finding without a human in the loop, and what precision you get depends on how poisoned
 your stream is:
 
 | poisoned documents in the stream | of the alarms, how many are real | false alarms per 100 000 documents |
 |---|---|---|
-| 1 in 10 | 99.1% | 32 |
-| 1 in 20 | 98.2% | 32 |
-| 1 in 100 | 91.2% | 31 |
-| 1 in 200 | 83.7% | 31 |
-| 1 in 1000 | 50.7% | 32 |
+| 1 in 10 | 94.9% | 88 |
+| 1 in 20 | 89.8% | 93 |
+| 1 in 100 | 62.8% | 97 |
+| 1 in 200 | 45.7% | 98 |
+| 1 in 1000 | 14.3% | 98 |
 
-Read the last row as the honest boundary: where attacks are genuinely rare, an alarm is a coin flip
-and the tool is a ROUTER — it decides what deserves the expensive check, not what gets deleted.
-Where they are not rare, an alarm is almost always real and can drive an action.
+Read the bottom of the table as the honest boundary: where attacks are genuinely rare, most alarms
+are false and the tool is a ROUTER — it decides what deserves the expensive check, not what gets
+deleted. Where a document in twenty carries something, nine alarms in ten are real and can drive an
+action.
 
 **It locates what it finds, so the document can be saved rather than dropped.** The instruction is
 what has to go; the page, the letter or the tool result around it is usually still the data you
@@ -178,10 +187,10 @@ outcome.
 
 And a cut is not a proof: what the tool did not find is still there, cut or no cut.
 
-**It costs nothing to leave switched on.** Two milliseconds and 45 MB, in the process you already
-have — nothing to install, nothing to reach for, nothing to wait on.
+**It costs nothing to leave switched on.** A couple of milliseconds and some 47 MB, in the process
+you already have — nothing to install, nothing to reach for, nothing to wait on.
 
-**And it is subtractive, not exclusive.** Whatever catches the other two thirds — a model, a review
+**And it is subtractive, not exclusive.** Whatever catches the rest — a model, a review
 step, the full AI Cordon detector — has less to do and pays for fewer documents, because the obvious
 third is already gone. The two do not compete; the cheap one runs first and the expensive one runs
 on what is left.
@@ -236,10 +245,10 @@ ones you write about receiving.
 
 ### Speed: the other half of the argument
 
-**2.12 ± 0.04 ms per 1000 characters on one CPU core** — that is the matcher itself; through
-`check()`, the call you actually make, it is 2.17 ± 0.07, and the two agree within their intervals.
-About 2.3 ms for a kilobyte-long letter, 6.7 ms for a three-kilobyte article, in some 45 MB of RAM
-for ordinary documents — on whatever machine your code already runs on.
+**2.29 ± 0.09 ms per 1000 characters on one CPU core**, over 4 800 real documents — and 2.41 ± 0.18
+when the same thing is measured by the command below, on a different corpus, which is the agreement
+worth having. About 2.4 ms for a kilobyte-long letter, 6.9 ms for a three-kilobyte article, in some
+47 MB of RAM for ordinary documents — on whatever machine your code already runs on.
 
 Every figure on this page was measured on one core of an Intel Core i9-12900KF, Python 3.12 on
 Linux. The constant is a property of that machine and yours will differ; what carries over is the
@@ -247,17 +256,17 @@ shape — linear in the size of the document, no GPU, no network. So the tool ca
 with it, with the same statistics and the same intervals:
 
 ```console
-$ aicordon picket bench ./docs --report bench.json --chart bench.svg
-  documents 2000, median length 2616 characters (P10-P90 969-5848)
-  per document   median 5.87 ms   P10-P90 2.223-12.826   P99 22.463   max 43.522
-  cost model     2.168 ± 0.069 ms per 1000 characters, plus 0.163 ± 0.18 ms per document (95%)
-  throughput     143.6 documents/s, 450396 characters/s
-  base load      17.3 ms, once per process (the whole command costs more: interpreter and imports on top)
-  fired on       207 of 2000 documents (10.35%) — not an error rate, these documents carry no labels
+$ aicordon picket bench ./docs --repeat 3 --report bench.json --chart bench.svg
+  documents 1999, median length 1907 characters (P10-P90 646-5677)
+  per document   median 4.869 ms   P10-P90 1.681-13.687   P99 41.793   max 245.75
+  cost model     2.412 ± 0.183 ms per 1000 characters, plus 0.169 ± 0.46 ms per document (95%)
+  throughput     134.4 documents/s, 405265 characters/s
+  base load      21.6 ms, once per process (the whole command costs more: interpreter and imports on top)
+  fired on       152 of 1999 documents (7.60%) — not an error rate, these documents carry no labels
 ```
 
 That last line is a property of the corpus, not of the detector: those 2 000 documents are an
-INJECTED pool, so a tenth of them firing is recall showing through rather than a false-alarm rate.
+INJECTED pool, so a fraction of them firing is recall showing through rather than a false-alarm rate.
 On your own traffic the same line means something else again — which is exactly why the tool
 declines to name it.
 
@@ -266,33 +275,32 @@ with. The last line is deliberately not called a false-positive rate: your docum
 labels, so how often it fired is all anyone can honestly report.
 
 
-**The cost is linear in the size of the document** — 2.12 ± 0.04 ms per 1000 characters at the
-matcher, as above, with a
-per-document constant of 0.27 ± 0.07 ms, and it does not care what the document contains. The two
-panels are measured separately, on 2 609 real documents: **2.17 ± 0.08** ms per 1000 characters
-without an injection, **2.08 ± 0.05** with one (95%). The difference is **0.09 ± 0.10**, which is
-consistent with zero — so it is not a difference we can claim to have measured, and that is the
-point of carrying the uncertainty rather than two bare numbers.
+**The cost is linear in the size of the document** — 2.29 ± 0.09 ms per 1000 characters through
+`check()`, the call you actually make, with a per-document constant consistent with zero, and it
+does not care what the document contains. The two panels are measured separately, on 4 800 real
+documents: **2.13 ± 0.13** ms per 1000 characters without an injection, **2.32 ± 0.10** with one
+(95%). The difference is **0.19 ± 0.17**, and it is the corpora rather than the verdict: the cost
+follows the number of dictionary hits, and the injected half is mail and news while the clean half
+is a different pair of pools.
 
-The same figures come out through the interface you actually call — `check`, not the matcher under
-it: **2.17 ± 0.07** ms per 1000 characters over 2 000 documents, **2.15 ± 0.16** over 10 000. Worth
-stating, because that is what a caller pays; measuring the layer below and quoting it as the cost
-would be quietly flattering.
+The same figure comes out of the command above on a different corpus — **2.41 ± 0.18** ms per 1000
+characters over 1 999 documents — and that agreement, between two corpora and two ways of timing, is
+what the number rests on.
 
-Nothing degrades in TIME on a long page: the most expensive document in a 10 000-document run is
-192 KB and costs 2.52 ms per 1000 characters, the same as a one-kilobyte letter.
+Nothing degrades in TIME on a long page: the most expensive document in the run above is 98 KB and
+costs 2.40 ms per 1000 characters, the same as a one-kilobyte letter.
 
 Memory is the exception, and it is the one figure here that is not flat. It has the same shape as
 the time — a base plus a slope — and it was fitted the same way, over 12 sizes and 36 runs:
 
-**peak RSS = 45.0 ± 1.3 MB + 0.231 ± 0.007 MB per KB of the document** (95%)
+**peak RSS = 47.4 ± 1.5 MB + 0.269 ± 0.007 MB per KB of the document** (95%)
 
-which is about 237 times the size of the text on top of the base, because the normalised copy, the
+which is about 275 times the size of the text on top of the base, because the normalised copy, the
 offset map, the token list and the hit list are all alive at once:
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/AICordon/aicordon/main/docs/memory-dark.png">
-  <img alt="Memory to check one document: peak RSS grows linearly with document size, 45 MB plus 0.23 MB per KB" src="https://raw.githubusercontent.com/AICordon/aicordon/main/docs/memory.png">
+  <img alt="Memory to check one document: peak RSS grows linearly with document size, 47 MB plus 0.27 MB per KB" src="https://raw.githubusercontent.com/AICordon/aicordon/main/docs/memory.png">
 </picture>
 
 The peak is set by the LARGEST document, not by their number: documents are checked one at a time,
@@ -312,8 +320,8 @@ Picket pays its floor per PROCESS instead, and the difference is the whole point
 
 | | floor | per document |
 |---|---|---|
-| **as a library** | none — the detector is raised once and then called | ~2.3 ms for a 1 KB letter |
-| **as the `aicordon` command** | **92 ± 2 ms** to start | the same ~2.3 ms |
+| **as a library** | none — the detector is raised once and then called | ~2.4 ms for a 1 KB letter |
+| **as the `aicordon` command** | **119 ms** to start | the same ~2.4 ms |
 
 So an agent loop, a server or a queue pays nothing per check beyond the text itself. A pre-commit
 hook or a CI step pays the start once and then scans as fast as it reads — worth doing, with one
@@ -506,10 +514,6 @@ $ aicordon picket explain IPI/Exfil.Send.A
 ## Licensing
 
 **Apache License 2.0 for the whole package** (`LICENSE`) — the code and the shipped base alike.
-There is no separate license for the base: one license field, nothing for a scanner to trip over.
-
-What is not here is not published: the sources the base is built from, and the weights and the
-engine of the full detector, stay ours.
 
 Contributions are accepted under the DCO: sign your commits off with `git commit -s`.
 

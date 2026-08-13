@@ -88,7 +88,13 @@ class Detector(BaseDetector):
         out = {}
         if "eval_recall" in m:
             a, b = m.get("eval_recall_abs", ("?", "?"))
-            out["recall (by seed)"] = f"{m['eval_recall']:.1%}  ({a} of {b})"
+            # What the denominator counts is part of the number: recall by distinct payload and
+            # recall by document differ by several points on the same run, and a base that reports
+            # one under the other's label is the quiet kind of wrong. The basis travels with the
+            # base rather than being fixed here, because it is a property of how that base was
+            # measured.
+            out[f"recall ({m.get('recall_basis', 'by seed')})"] = \
+                f"{m['eval_recall']:.1%}  ({a} of {b})"
         if "eval_fpr" in m:
             a, b = m.get("eval_fpr_abs", ("?", "?"))
             out["false positives (FPR)"] = f"{m['eval_fpr']:.4%}  ({a} of {b})"

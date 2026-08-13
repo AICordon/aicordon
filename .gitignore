@@ -28,3 +28,7 @@ src/aicordon/picket/data/*.json
 RESULTS.md
 HANDOFF.md
 PLAN*.md
+
+# Working notes and release plans: ours, not part of what ships. Same rule as the research
+# notes above -- the repository holds the product, not the scaffolding around a release.
+TODO/

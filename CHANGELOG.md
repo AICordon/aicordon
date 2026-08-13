@@ -2,62 +2,49 @@
 
 ## 0.3.0 — 2026-08-13
 
-### A rule base built from the two axes of an injection, not from whole patterns
+### A new base: a third more injections caught, at the same cost
 
-Until now a rule matched a pattern as a whole: one conjunction had to land on the technique **and**
-on the goal at once, so each rule sat on one kind of injection. The new base separates the two. One
-set of parts recognises the technique — a forged frame, a revoked instruction, a poisoned retrieval
-snippet — and another recognises what the injection is after: disclose, exfiltrate, escalate. A
-finding requires one of each. Parts combine, so `m` techniques and `k` goals cover `m·k` kinds of
-injection instead of the handful a hand-built conjunction can reach.
-
-**Measured on an open corpus anyone can rerun.** [Quadrat-IPI
-v1.0.1](https://huggingface.co/datasets/mihailgribov/quadrat-ipi) is published with its documents,
-its labels and its harness: 8378 injections and 31 365 clean documents, here the half of the corpus
-that took no part in building the base. Its grid is 92 cells of "technique × goal" over three
-carriers — e-mail, document, web page — so a number can be read per kind of attack rather than as a
-single average. Margins are ±1.96 standard errors.
+Both versions were run through the same scanner on the same documents — [Quadrat-IPI
+v1.0.1](https://huggingface.co/datasets/mihailgribov/quadrat-ipi), an open corpus published with its
+harness: 16 800 injections and 63 000 clean documents. The full report, with the breakdown by carrier
+and by kind of attack, is in [docs/eval](docs/eval/quadrat-ipi-v1.0.1.md). Margins are ±1.96
+standard errors.
 
 | | 0.2.0 | 0.3.0 |
 |---|---|---|
-| **detection** | **12.52 ± 0.71%** | **16.23 ± 0.79%** |
-| **false positives** | **0.086 ± 0.032%** | **0.092 ± 0.034%** |
-| detection — e-mail / document / web | 13.22 / 12.00 / 12.26% | 16.20 / 16.02 / 16.54% |
-| false positives — e-mail / document / web | 0.038 / 0.067 / 0.153% | 0.086 / 0.086 / 0.105% |
-| cells of the grid covered at 50% or better | 6 of 92 | 8 of 92 |
+| **detection** | **12.46 ± 0.50%** | **16.39 ± 0.56%** |
+| **false positives** | **0.086 ± 0.023%** | **0.098 ± 0.024%** |
 | rules in the base | 25 | 313 |
 
-Paired over the same documents, **detection rises by 3.71 ± 0.51 percentage points**: 390 injections
-are caught only by this version, 79 only by the previous one.
+Paired over the same documents, **detection rises by 3.93 ± 0.37 percentage points**: 821 injections
+are caught only by this version, 161 only by the previous one. **False positives are level, not
+lower** — the intervals overlap.
 
-**False positives are level, not lower** — 0.086% against 0.092%, intervals overlapping. They fall
-on web pages (0.153% → 0.105%) and rise on e-mail and documents (0.038% → 0.086%, 0.067% → 0.086%).
-The new rules do not yet use the aperture field that 0.2.0 introduced; that is where the next
-reduction is expected to come from.
-
-**What did not improve is breadth.** Eight cells of 92 are covered at 50% or better, against six.
-The base is still strongest where an injection asks for something to be *revealed*, and weak where
-it swaps the task or claims authority without naming it. Two whole families stay out of reach —
-a bare command and a plausible errand — because both are defined by what is *absent* from the text,
+**Where it is still blind is unchanged.** The base is strongest where an injection asks for something
+to be *revealed*, and weak where it swaps the task or claims authority without naming it. A bare
+command and a plausible errand stay out of reach: both are defined by what is *absent* from the text,
 and a signature can only assert what is present.
 
-### Spans point at the start of the payload
+### Cutting the injection out takes more of it with it
 
-The reported span now begins exactly at the start of the injected text (median offset 0.000 of the
-payload length, against 0.046 before) and covers more of it (median 0.598 against 0.558; IoU 0.484
-against 0.466). Precision of the span is marginally lower — 0.845 against 0.860.
+The span the report hands you now starts exactly where the injected text starts (median offset 0.000
+of the payload, against 0.046 before) and covers more of it — median 0.598 against 0.558, IoU 0.484
+against 0.466. Slightly more of the honest text falls inside the span in exchange: precision 0.845
+against 0.860.
 
-### Speed
+### Speed and memory: no measurable change
 
-**102 documents per second against 114**, median 5.48 ms per document against 5.15. The base holds
-313 rules instead of 25, but the time is spent walking the text, not checking rules. Loading the
-base costs 85 ms instead of 18, once per process.
+Twelve times the rules cost nothing that can be measured — the time goes on reading the text, not on
+checking rules. Measured through the shipped command on the same 1 999 documents: 2.46 ± 0.39 ms per
+1000 characters against 2.40 ± 0.14, a median of 4.69 ms per document against 4.70, peak RSS of
+47.4 ± 1.5 MB + 0.269 ± 0.007 MB per KB against 47.0 ± 1.4 MB + 0.269 ± 0.007. Every pair overlaps
+inside its interval.
 
-### Compatibility
+### Nothing to change on your side
 
-The base declares schema 2 and carries no aperture fields, so it scans exactly as a schema 1 base
-would. The library and CLI surfaces are unchanged. The base in use is printed by
-`aicordon picket version` and in the scan banner: `lexical 20260813`.
+The library and the command work exactly as before — same calls, same flags, same report. Upgrading
+is `pip install -U aicordon`. Which base is running is printed by `aicordon picket version` and in
+the scan banner: `lexical 20260813`.
 
 ## 0.2.0 — 2026-08-10
 

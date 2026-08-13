@@ -8,17 +8,7 @@ version = "0.3.0"
 description = "Picket: a fast local signature detector for indirect prompt injection — a rule, no model, no network"
 readme = "README.md"
 requires-python = ">=3.10"
-# The author is a person: there is no legal entity yet, and the Apache 2.0 patent grant is made by
-# the copyright holder — which a company that does not exist cannot do. "AI Cordon" remains the name
-# of the product, in the text and in what the tool prints. When there is a company, the rights are
-# assigned and this field changes together with the copyright in NOTICE.
 authors = [{ name = "Mikhail Gribov", email = "mihail.gribov.rs@gmail.com" }]
-# ONE license for the whole package, rule base included (decided 2026-07-31, canonical wording in
-# the product doc). Apache-2.0 rather than MIT for the explicit patent grant and the trademark
-# clause, and because corporate legal departments wave it through. Splitting the base out under
-# CC BY was considered and rejected: it signals "the rules are data" without protecting anything,
-# while tripping license scanners and complicating package metadata — friction aimed at exactly the
-# audience Apache was chosen for. What monetises is access to the update stream, not the license.
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 keywords = [
