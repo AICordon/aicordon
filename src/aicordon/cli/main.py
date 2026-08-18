@@ -407,8 +407,12 @@ def cmd_explain(product: Product, a) -> int:
 
 
 def cmd_coverage(product: Product, a) -> int:
-    """A command of its own rather than a footer line: the detector's limits are one of its
-    characteristics."""
+    """The working point of the mode that was loaded, and the standing caveat.
+
+    What the detector covers is the measurement, printed here: the corpus, the recall and the false
+    alarms it was fixed at. The warning underneath is formal and stays formal — an itemised list of
+    what a signature cannot see belongs to the report, not to every run of the command.
+    """
     st = render.make_style(a.no_color)
     try:
         det = _build(product, a)
@@ -422,11 +426,6 @@ def cmd_coverage(product: Product, a) -> int:
         for k, v in det.measured.items():
             print(f"    {k:<24} {v}")
         print()
-    print(st("  does not cover:", render.DIM))
-    for lim in det.limits:
-        for i, line in enumerate(render.wrap(lim, render.width() - 8)):
-            print(f"    {'· ' if i == 0 else '  '}{line}")
-    print()
     print(st("  No findings does not mean no injection.", render.DIM))
     return EXIT_OK
 

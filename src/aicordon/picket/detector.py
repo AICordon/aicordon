@@ -21,20 +21,6 @@ from aicordon.core.model import Document, Evidence, Finding, Severity
 from .rule.scan import DATA, Scanner, pick_base     # noqa: F401 — DATA is used by consumers
 from .rule.threats import catalog, rank, signature   # noqa: F401 — signature is used by consumers
 
-LIMITS = (
-    # The document may be in any language; what has to be English is the injected instruction.
-    # The old wording said "recall on other languages is zero", which is both wrong and worse than
-    # the truth: an English payload inside a German letter is caught, and that is the common case.
-    "a payload in another language: the document can be in any language, but the vocabulary the "
-    "base recognises is English, so an instruction written in German is not seen",
-    "paraphrase without the vocabulary of an instruction: text saying the same thing in other "
-    "words is not seen",
-    "obfuscation: split words, substituted characters, an encoded payload",
-    "injections inside code and markup — a separate axis the rule does not have",
-    "completeness in general: by construction the rule misses more than half of the injections "
-    "in its own bank",
-)
-
 
 class Detector(BaseDetector):
     """The local detector. Raised once, then called as often as needed.
@@ -52,9 +38,16 @@ class Detector(BaseDetector):
     title = "Picket"
     requires = frozenset()
     batch = 64
-    limits = LIMITS
 
-    def __init__(self, rules: Path | str | None = None, span_pad: int = 0) -> None:
+    def __init__(self, rules: Path | str | None = None, span_pad: int = 0,
+                 mode: str = "ipi") -> None:
+        """`mode` says where the text came from: `ipi` — data the agent read, `dpi` — a turn the
+        user typed. It is a property of the CALL SITE, not of the document, which is why it is set
+        once at construction: a gateway knows which field a string arrived in and cannot mistake
+        one for the other. See `Scanner.scan` for what the modes change."""
+        if mode not in ("ipi", "dpi"):
+            raise ValueError(f"unknown mode {mode!r}: expected 'ipi' or 'dpi'")
+        self._mode = mode
         self._pad = int(span_pad)
         try:
             # No base, a base from a newer schema, a damaged file — all of it comes out here as
@@ -78,13 +71,12 @@ class Detector(BaseDetector):
     # --- contract ------------------------------------------------------------------------------
 
     @property
-    def coverage(self) -> str:
-        return ("payloads in another language, paraphrase without the vocabulary of an "
-                "instruction, obfuscation and injections inside code")
-
-    @property
     def measured(self) -> dict:
-        m = self.spec.get("measured", {})
+        # The numbers belong to the MODE, not to the base: `measured` is the core on the indirect
+        # corpus, `measured_dpi` the direct group on typed turns. Reporting one under the other's
+        # name would be the quiet kind of wrong the caveat below warns about, so a mode with no
+        # numbers of its own reports none rather than borrowing.
+        m = self.spec.get("measured" if self._mode == "ipi" else f"measured_{self._mode}", {})
         out = {}
         if "eval_recall" in m:
             a, b = m.get("eval_recall_abs", ("?", "?"))
@@ -100,8 +92,16 @@ class Detector(BaseDetector):
             out["false positives (FPR)"] = f"{m['eval_fpr']:.4%}  ({a} of {b})"
         if m.get("cross_check"):
             out["cross-check"] = m["cross_check"]
-        for i, c in enumerate(self.spec.get("caveats", []), 1):
-            out[f"caveat {i}"] = c
+        if out:
+            # Which mode these are is part of the numbers. Two modes, two corpora, two working
+            # points: a reader who cannot see which one is on screen cannot use either.
+            out = {"mode": self._mode, **out}
+        if m.get("corpus"):
+            out["corpus"] = m["corpus"]
+        # The base still carries its frozen caveats — the report quotes them and `spec` keeps them —
+        # but the command prints the working point, not an essay on it: what the check is worth is
+        # the measurement above, and the standing warning underneath says an empty report is not a
+        # clean bill. That is the whole caveat a run needs.
         return out
 
     def available(self) -> None:
@@ -121,6 +121,7 @@ class Detector(BaseDetector):
             "rules": f"{len(self.spec['rules'])} ({n_conj} conjunctions)",
             "scope": self.spec.get("scope", ""),
             "span": f"base padding 50 chars, shift {self._pad:+d}",
+            "mode": self._mode,
         }
 
     def catalog(self) -> dict:
@@ -128,7 +129,7 @@ class Detector(BaseDetector):
 
     def scan(self, docs: Iterable[Document]) -> Iterator[Finding]:
         for d in docs:
-            res = self._sc.scan(d.text, pad=self._pad)
+            res = self._sc.scan(d.text, pad=self._pad, mode=self._mode)
             if not res["flagged"]:
                 continue
             doc_span = tuple(res["span"]) if res["span"][0] >= 0 else None
@@ -156,6 +157,8 @@ class Detector(BaseDetector):
                 )
 
 
-def load(rules: Path | str | None = None, span_pad: int = 0) -> Detector:
-    """A ready detector. A separate function so embedding code need not know the class name."""
-    return Detector(rules=rules, span_pad=span_pad)
+def load(rules: Path | str | None = None, span_pad: int = 0, mode: str = "ipi") -> Detector:
+    """A ready detector. A separate function so embedding code need not know the class name.
+
+    `mode` is `ipi` for text the agent read and `dpi` for a turn the user typed; see `Detector`."""
+    return Detector(rules=rules, span_pad=span_pad, mode=mode)

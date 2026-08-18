@@ -1,4 +1,4 @@
-"""Picket — AI Cordon's free signature detector for indirect prompt injection. A rule; no model, no network.
+"""Picket — AI Cordon's free signature detector for prompt injection. A rule; no model, no network.
 
 The package works as a tool and as a library. The second is not a side effect: adapters for AI
 frameworks will be written against THIS interface rather than against argument parsing, so importing
@@ -62,6 +62,15 @@ def __dir__() -> list[str]:
     return sorted(set(globals()) | set(_LAZY))
 
 
+def _mode(v: str) -> str:
+    """Validated at PARSE time rather than when the detector is built: otherwise a typo in the flag
+    surfaces as a traceback out of the depths of the package instead of one line naming the mode."""
+    import argparse
+    if v not in ("ipi", "dpi"):
+        raise argparse.ArgumentTypeError(f"unknown mode {v!r}: expected 'ipi' or 'dpi'")
+    return v
+
+
 def _build(**kw):
     """What `PRODUCT.build` points at: the same `load`, resolved at call time.
 
@@ -88,7 +97,7 @@ PRODUCT = Product(
     # naming them asymmetrically ("prefilter" vs "detector") only hid it. The frame to stay out of
     # is the undifferentiated "one more injection detector", so the qualifier is not decoration:
     # never ship the noun without it.
-    tagline="fast local signature detector for indirect prompt injection · a rule, no model, no network",
+    tagline="fast local signature detector for prompt injection · a rule, no model, no network",
     version=VERSION,
     build=_build,
     art=ART,
@@ -99,6 +108,11 @@ PRODUCT = Product(
         Option(flags=("--span-pad",), dest="span_pad", metavar="N", type=int,
                help="shift the span from its measured optimum: 0 is the optimum, +150 for "
                     "trimming a document, -50 for the raw hull of the matched rules"),
+        # WHERE THE TEXT CAME FROM, not how hard to look. `dpi` adds the rules for the openings
+        # people type by hand, and those cost 0.81% false positives on documents against 0.098%
+        # for the default — eight times the noise if the mode is used as a sensitivity knob.
+        Option(flags=("--mode",), dest="mode", metavar="ipi|dpi", type=_mode, default="ipi",
+               help="ipi (default) for data your code fetched, dpi for a turn your user typed"),
     ),
     # The rules for these lines live in `aicordon/core/product.py`. While there is no production API
     # only the site is mentioned: promising a package and an API before they can be used is not on.

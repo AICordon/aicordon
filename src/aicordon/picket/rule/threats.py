@@ -78,7 +78,27 @@ FALLBACK = ("Generic", "Relation", MEDIUM,
             "A relation between terms that fits no known technique. The name is temporary: a rule "
             "like this is a reason to extend the technique table.")
 
+# The direct group, kept apart from the table above because it is named differently. An `ipi`
+# technique is DERIVED from the slots a rule carries, and its position in that list is what merging
+# uses to pick a headline; a `dpi` rule is named by the leading slot of its first edge and there is
+# no specificity order between the five. So they share the description lookup and nothing else.
+DPI_DESCRIPTIONS = {
+    "Policy.Cancel": "Cancelling the rules of the session outright: the turn declares that the "
+                     "previous instructions, the guidelines or the policy no longer apply.",
+    "Policy.Strip": "Asking for the rules to be dropped for this answer — \"without the "
+                    "disclaimers\", \"no warnings\", \"skip the lecture\" — rather than cancelled "
+                    "altogether.",
+    "Roleplay.Frame": "A fictional frame built so the rules belong to the character rather than to "
+                      "the model: a game, a simulation, a story in which the assistant is somebody "
+                      "who has none.",
+    "Refusal.Ban": "Forbidding refusal itself: the turn states in advance that the answer must "
+                   "never be a decline, an apology or a statement of what the model cannot do.",
+    "Persona.Lock": "Holding the assumed identity in place: an instruction to stay in character, "
+                    "to answer only as that persona, or to be reminded back into it on command.",
+}
+
 DESCRIPTIONS = {f"{fam}.{tech}": desc for fam, tech, _sev, _slots, desc in TECHNIQUES}
+DESCRIPTIONS.update(DPI_DESCRIPTIONS)
 # Position in the table = how specific the technique is. Merging findings needs it: when several
 # rules fire over one sentence, the block is named by the technique that says the most about the
 # text. Only this module knows that ordering, so it is published rather than guessed downstream.

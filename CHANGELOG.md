@@ -1,5 +1,64 @@
 # Changelog
 
+## 1.0.0 — 2026-08-17
+
+### A second mode: the attack the user types
+
+Until now Picket read one kind of text — what your code went and fetched, carrying an instruction
+somebody planted in it. It now reads the other end as well: the turn the user typed, carrying a
+jailbreak. Ask for it by name.
+
+```console
+$ aicordon picket scan --mode dpi --jsonl turns.jsonl --field text
+```
+
+```python
+typed = picket.load(mode="dpi")
+```
+
+At its working point — around one false alarm per thousand real user turns, 0.101% — it catches
+34.8% of held-out forum jailbreaks: 187 of the 537 it has never seen in any form. The curve and the
+band around it are in [docs/eval](docs/eval/direct-jailbreaks-2026-08.md).
+
+This is what makes the release 1.0.0 rather than 0.4.0: the package answers a second question now,
+not the same question better.
+
+### The mode is not a sensitivity knob
+
+The two rule sets are **disjoint** — 313 rules for planted instructions, 67 for typed jailbreaks —
+and neither is a weaker version of the other. Running one over the other's field is not a degraded
+detector but a different one, pointed at text it was never measured on. Choose by where the string
+came from, not by how strict you want to be.
+
+### The default is unchanged
+
+`ipi` remains the default, and it is the same detector it was in 0.3.0: verified verdict by verdict
+over 371 582 documents, with the same rules firing on the same texts. Upgrading changes nothing for
+code that does not ask for the new mode.
+
+### Reports and tools now speak per mode
+
+`coverage` prints the working point of the mode you loaded, and says which mode that is — the two
+are measured on different corpora and are not interchangeable. Threat names carry the same
+distinction: `IPI/…` for something planted in text that was read, `DPI/…` for the techniques of a
+typed turn, with `explain` describing both.
+
+The caveat under a report is now one formal line — "No findings does not mean no injection" —
+instead of a list of classes printed on every run. What the check is worth is the measurement, and
+that is what `coverage` prints; the reports in [docs/eval](docs/eval) carry the rest.
+
+### Base and compatibility
+
+New base `engine_v3_20260817_b3`, written to **schema 3**, which carries the per-mode rule sets. An
+older build refuses a base it cannot read rather than reading part of it, so downgrading the package
+without downgrading the base fails loudly with exit code 3.
+
+### Nothing to change on your side
+
+The library and the command work exactly as before: same calls, same flags, and JSON with the same
+fields. Upgrading is `pip install -U aicordon`. Which base is running is printed by `aicordon picket
+version` and in the scan banner: `lexical 20260817`.
+
 ## 0.3.0 — 2026-08-13
 
 ### A new base: a third more injections caught, at the same cost

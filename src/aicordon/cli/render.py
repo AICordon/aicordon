@@ -248,9 +248,10 @@ def footer(st: Style, product, detector, n_docs: int, n_find: int, ms: float,
            promo: bool = True, stats: dict | None = None, n_flagged: int = 0) -> str:
     """Footer: totals, coverage, and only then the link.
 
-    The order here is substantive, not cosmetic. The coverage line is the only place that states
-    what the check does NOT cover, and it must come before any mention of the company's other
-    products (the rules for those lines live in `core/product.py`).
+    The order here is substantive, not cosmetic. The caveat line is the only place that says an
+    empty report is not a clean bill, and it must come before any mention of the company's other
+    products (the rules for those lines live in `core/product.py`). It stays a formal warning: the
+    scope of the check is the published measurement, not a list of classes printed on every scan.
 
     Findings are counted IN DOCUMENTS as well as in total: over a directory "Findings: 12" leaves
     the reader guessing whether that is one poisoned page or twelve, and those are different
@@ -265,8 +266,7 @@ def footer(st: Style, product, detector, n_docs: int, n_find: int, ms: float,
     if skipped:
         lines.append(st(f"  {skipped}", DIM))
     lines.append("")
-    cover = f"Engine: {detector.name} ({detector.version}). Does not cover: {detector.coverage}."
-    for line in wrap(cover, width() - 4):
+    for line in wrap(f"Engine: {detector.name} ({detector.version}).", width() - 4):
         lines.append(st(f"  {line}", DIM))
     lines.append(st("  No findings does not mean no injection.", DIM))
     if promo and product.promo:

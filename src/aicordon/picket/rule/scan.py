@@ -1,16 +1,19 @@
 """CLI: checking documents with the frozen rule base.
 
-An indirect prompt injection detector without a model: a dictionary of literals, an automaton built
-from it, and a list of relations between terms. 17 KB gzipped, no dependencies beyond the standard
-library, ~4 ms per document against the ~270 ms forward pass of a transformer detector.
+A prompt injection detector without a model: a dictionary of literals, an automaton built from it,
+and a list of relations between terms. Two rule sets on one engine — one for instructions planted
+in text an agent reads, one for the jailbreak openings a user types — selected by `mode`. A few
+hundred KB, no dependencies beyond the standard library, ~2.4 ms per kilobyte of text against the
+~270 ms forward pass of a transformer detector.
 
-The rule fires when at least one of its 25 rules fires whole; a rule is one relation or a
-conjunction of two. A relation is not a word but a pair of terms at a given distance and in a given
-order, which is why "ignore" in "Can I ignore this warning?" does not fire (measured on NotInject:
-0 false positives out of 339).
+The base fires when at least one of its rules fires whole; a rule is one relation or a conjunction
+of two. A relation is not a word but a pair of terms at a given distance and in a given order, which
+is why "ignore" in "Can I ignore this warning?" does not fire (measured on NotInject: 0 false
+positives out of 339).
 
 The scope is English; on non-English text recall is zero (see `scope` in the base). The measured
-working point: FPR 0.0256% on unseen sources and unseen seeds, at the recall the base reports.
+working point belongs to the base and to the mode, and is reported by it: `measured` for `ipi`,
+`measured_dpi` for `dpi` — never a figure hardcoded here, which would age silently.
 
     echo "text" | python3 -m aicordon.picket.rule.scan
     python3 -m aicordon.picket.rule.scan letter.txt page.html
@@ -47,7 +50,18 @@ SLOTS = DATA / "slots"
 # code depends on — a new required field, a different shape of `rules`. A base that declares a
 # higher number is refused rather than read: a tool that quietly ignores fields it does not know
 # turns a format change into a wrong verdict, and a detector is the wrong place to guess.
-BASE_SCHEMA = 2
+BASE_SCHEMA = 3
+
+# Schema 3 added `modes` to a rule: the delivery modes it is active in, absent meaning "all". It
+# exists because a rule's worth depends on where the text came from, and that was measured: the
+# roleplay group buys 26.3% of wild jailbreaks for 0.071% of false positives on live chat turns and
+# costs 0.683% on documents — seven times the whole budget of the base. Enabling it everywhere would
+# trade a working point for a broken one; enabling it by mode is the whole point of the field.
+#
+# The number had to be bumped rather than the field quietly added. An older tool that ignored
+# `modes` would run every rule in every mode, which is exactly the 0.683% case, and it would do so
+# silently while reporting the numbers of a base it is not running. Refusing to load says that;
+# ignoring an unknown field would not.
 
 # Schema 2 added `aperture` to a rule: the widest span its edges may cover together. The field is
 # optional and its absence means no limit, so a base written to schema 1 scans exactly as it always
@@ -279,7 +293,36 @@ def canon(anchor: str, key: str) -> tuple:
 class Scanner:
     def __init__(self, base_path: Path | None = None):
         self.eng, self.rules, self.spec, self.source = build(base_path or pick_base())
-        self.needed = {e for r in self.rules for e in r}
+        # The REFUTATION channel. A rule asserts presence; the rule language has no negation, and
+        # "this is not an injection, because the text around it is code" cannot be expressed by a
+        # conjunction at any number of them. So refutation lives beside the rules: edges with a
+        # weight OF THEIR OWN, their sum over the document, and a threshold. A rule that fired is
+        # withdrawn once that sum is reached.
+        #
+        # The weights and the threshold come from the base rather than being computed here: they
+        # were selected on the measured half of the corpus, and deriving them on the fly would mean
+        # holding a detector nobody has measured.
+        ref = self.spec.get("refutation") or {}
+        self.refute = {(e[0], e[1], e[2], e[3], e[4]): float(e[5]) for e in ref.get("edges", ())}
+        self.refute_threshold = {k: float(v) for k, v in (ref.get("threshold") or {}).items()}
+        # The edges OF INTEREST are counted PER MODE, not as a union over the whole base. Otherwise
+        # in `ipi` the engine looks through the text for relations only the `dpi` group needs — a
+        # group switched off in that mode — so the default would pay for a capability it does not
+        # use, and the promise "the behaviour has not changed" would stop being true about cost.
+        self.needed_by_mode: dict[str, set] = {}
+        for m in ("ipi", "dpi"):
+            need = {
+                e for r, md in zip(self.rules, (tuple(x["modes"]) if x.get("modes") else None
+                                                for x in self.spec["rules"]))
+                if md is None or m in md
+                for e in r
+            }
+            # Refuting edges are looked for only in the modes that declare a threshold: a mode
+            # with no refutation must not pay for searching for one.
+            if m in (ref.get("threshold") or {}):
+                need |= set(self.refute)
+            self.needed_by_mode[m] = need
+        self.needed = set().union(*self.needed_by_mode.values())
         # The aperture of each rule, `None` where the rule does not limit its own span. A base
         # written to schema 1 has none at all and therefore scans exactly as it did before this
         # field existed — which is the point: a rule set keeps its measured working point when the
@@ -291,8 +334,22 @@ class Scanner:
         # where a limit in characters cost none. The field stays readable because a base is free to
         # carry either form, both, or neither.
         self.aperture_fracs = [r.get("aperture_frac") for r in self.spec["rules"]]
+        # Modes a rule is active in. Absent means every mode: a base written before the field
+        # existed keeps scanning exactly as it did, and a rule that does not care about delivery
+        # does not have to say so.
+        self.modes = [tuple(r["modes"]) if r.get("modes") else None for r in self.spec["rules"]]
+        # The rules split by mode ONCE, at load. There is no reason to test the field inside the
+        # loop over rules: the mode is known on entry to `scan`, and that loop is the hot path, run
+        # for every document. The original index of the rule is kept here as well — threat labels
+        # and apertures are addressed by it, and replacing it with a position in the filtered list
+        # would hand out somebody else's names.
+        self.rules_by_mode: dict[str, list[tuple[int, list]]] = {}
+        for m in ("ipi", "dpi"):
+            self.rules_by_mode[m] = [(i, r) for i, (r, md) in enumerate(zip(self.rules, self.modes))
+                                     if md is None or m in md]
 
-    def _places(self, text: str, lo_limit: int = -1, hi_limit: int = -1):
+    def _places(self, text: str, lo_limit: int = -1, hi_limit: int = -1,
+                mode: str = "ipi"):
         """Where every edge of the base occurs — all occurrences, in NORMALISED coordinates.
 
         `lo_limit`/`hi_limit` confine the hits to a region of the ORIGINAL text and exist for
@@ -317,15 +374,28 @@ class Scanner:
         spans = local.get("pair_spans", {})
 
         found: dict[tuple, list[tuple[int, int]]] = {}
+        want = self.needed_by_mode.get(mode, self.needed)
         for slot, c in local["pairs"].items():
             for key in c:
                 k = canon(slot, key)
-                if k in self.needed:
+                if k in want:
                     found.setdefault(k, []).extend(spans.get((slot, key), ()))
         return n, [m.start() for m in PARA.finditer(low)], found
 
-    def scan(self, text: str, pad: int = 0, aperture=FROM_BASE) -> dict:
+    def scan(self, text: str, pad: int = 0, aperture=FROM_BASE, mode: str = "ipi") -> dict:
         """Verdict, fired rules and offsets — in coordinates of the ORIGINAL text.
+
+        `mode` says WHERE THE TEXT CAME FROM, not what to look for:
+
+            ipi   the text is data the agent read — a document, a letter, a page, a repository
+                  file. The default, because that is the case a caller who does not think about
+                  the question is in.
+            dpi   the text is what the user typed — a turn of a dialogue.
+
+        The two rule sets are disjoint, and that was measured rather than assumed: on typed turns
+        the document rules catch 13.2% of jailbreaks for 0.66% false alarms, the direct rules 34.8%
+        for 0.10%. Running both would buy a fifth of the detections for six times the noise. A rule
+        with no `modes` runs in both, which is how a base written before the field keeps working.
 
         `pad` is counted from the measured optimum `SPAN_BASE`, not from the raw hull of the rules:
         0 is the optimum, a positive value widens (200 in total is what the cropping branch needs),
@@ -337,7 +407,14 @@ class Scanner:
         base. The last two exist for measurement: a caller who overrides the aperture is holding a
         detector whose recall and FPR nobody has measured.
         """
-        n, breaks, found = self._places(text)
+        n, breaks, found = self._places(text, mode=mode)
+        # The refutation mass is computed ONCE per document: it is a property of the text, not of
+        # any one rule.
+        th_ref = self.refute_threshold.get(mode)
+        refuted = False
+        if th_ref is not None:
+            mass = sum(w for e, w in self.refute.items() if e in found)
+            refuted = mass >= th_ref
 
         def to_src(lo: int, hi: int) -> tuple[int, int]:
             # The map takes normalised coordinates back to the original text, or the offsets would
@@ -346,7 +423,8 @@ class Scanner:
                     (n.src[hi - 1] + 1) if 0 < hi <= len(n.src) else -1)
 
         fired = []
-        for ri, r in enumerate(self.rules):
+        for ri, r in ([] if refuted else self.rules_by_mode.get(mode,
+                                                               list(enumerate(self.rules)))):
             if not all(e in found for e in r):
                 continue
             limit = self.apertures[ri] if aperture == FROM_BASE else aperture

@@ -4,19 +4,20 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aicordon"
-version = "0.3.0"
-description = "Picket: a fast local signature detector for indirect prompt injection — a rule, no model, no network"
+version = "1.0.0"
+description = "Picket: a local signature detector for prompt injection, planted and typed — 100-200 documents/s on one CPU core, no model, no network"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Mikhail Gribov", email = "mihail.gribov.rs@gmail.com" }]
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 keywords = [
-    "prompt-injection", "indirect-prompt-injection", "ipi", "llm-security",
+    "prompt-injection", "indirect-prompt-injection", "jailbreak-detection", "ipi", "dpi",
+    "llm-security",
     "ai-security", "guardrails", "detector",
 ]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Environment :: Console",
     "Intended Audience :: Developers",
     "Programming Language :: Python :: 3",
