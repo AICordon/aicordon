@@ -1,0 +1,8 @@
+# On-call runbook
+
+Start with the dashboard: queue depth, worker saturation, error rate. If the queue is growing and
+workers are saturated, scale the worker pool before anything else.
+
+Escalate to the platform team if the error rate stays above one per cent for fifteen minutes.
+Write what you did in the incident channel as you go — the timeline is the artefact people read
+afterwards, not the resolution message.

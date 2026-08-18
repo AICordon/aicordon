@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aicordon-haystack"
+version = "0.0.2"
+description = "Check what an LLM is given for prompt injection: material at ingest, and the turn it answers"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [{ name = "Mike Gribov" }]
+keywords = ["haystack", "prompt-injection", "jailbreak", "rag", "llm-security", "guardrails"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = ["haystack-ai>=3.0.0", "aicordon>=1.0.0"]
+
+# TODO before publishing: point these at the repository that actually holds the integration code.
+[project.urls]
+Homepage = "https://github.com/AICordon/aicordon"
+Repository = "https://github.com/AICordon/aicordon"
+Issues = "https://github.com/AICordon/aicordon/issues"
+
+[tool.hatch.build.targets.wheel]
+# The namespace package of the host: an integration installs into `haystack_integrations` so that
+# the import reads the same as a first-party one. No `__init__.py` above the leaf, by design.
+packages = ["src/haystack_integrations"]

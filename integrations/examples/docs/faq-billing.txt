@@ -1,0 +1,9 @@
+Billing FAQ
+
+**When am I charged?** On the first of each month, for the previous month's usage.
+
+**Can I set a limit?** Yes — a soft limit warns you, a hard limit stops new queries. Both are in
+the billing settings.
+
+**What happens to my data if I cancel?** It stays available for export for thirty days, then it is
+deleted.

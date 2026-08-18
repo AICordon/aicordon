@@ -1,0 +1,7 @@
+Security note — handling untrusted documents
+
+Anything the system fetches — a page, a letter, a file dropped in the inbox — is untrusted input.
+Do not let a document decide what the assistant does; treat its text as data to be quoted, never as
+instructions to be followed.
+
+Review the ingestion path when a new source is added, and record who owns the source.

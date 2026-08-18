@@ -1,0 +1,7 @@
+# Changelog 2.4
+
+Added: incremental export, resumable after a timeout.
+Fixed: the scheduler no longer double-runs a job when the leader changes.
+Changed: the default page size for the API is now 200 rows.
+
+Upgrading is a restart; no migration is required.
