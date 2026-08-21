@@ -45,13 +45,12 @@ Check what an LLM is given for prompt injection - in both places it can arrive.
 | `PromptInjectionFilter` | **material**: documents at ingest, before they are chunked and embedded | Picket's `ipi` rules |
 | `PromptInjectionGuard` | **the request**: the turn the model is about to answer | Picket's `dpi` rules |
 
-The two rule sets are disjoint and neither is a stricter version of the other, so the choice is not
-a sensitivity knob. It follows from the role the text plays in the prompt: material is what the
-model works on, a request is what it answers. Your code always knows which is which, because it puts
-them in different places when it assembles the call.
+The two rule sets are disjoint, and neither is a stricter version of the other - this is not a
+sensitivity knob. Pick by role: material is what the model works on, the request is what it answers.
+Your code knows which is which; it puts them in different places when it assembles the call.
 
 The check is a rule, not a model: no GPU, no network, no key, a few hundred kilobytes of base, and a
-fraction of a millisecond on one core for a turn of ordinary length.
+fraction of a millisecond per turn on one core.
 
 ## Installation
 
@@ -78,10 +77,10 @@ pipe.connect("splitter.documents", "writer.documents")
 pipe.connect("ipi_filter.rejected", "quarantine.documents")   # optional; nothing disappears quietly
 ```
 
-The component sits **before the splitter**: cutting an injection here removes it from the chunks,
-the embeddings and the store at once, and no offsets have to be reconciled across chunk boundaries.
-Modes: `annotate`, `blank` (keeps the length), `mask`, `redact` (default), `drop`, `fail`. What is
-cut is the whole line that holds the span, not the matched characters alone.
+The component sits **before the splitter**: a cut here takes the injection out of the chunks, the
+embeddings and the store at once, with no offsets to reconcile across chunk boundaries. Modes:
+`annotate`, `blank` (keeps the length), `mask`, `redact` (default), `drop`, `fail`. The cut takes
+the whole line holding the span, not the matched characters alone.
 
 ## The turn the model answers
 
@@ -94,16 +93,15 @@ pipe.connect("guard.messages", "llm.messages")               # the model is call
 pipe.connect("guard.blocked", "refusal.messages")            # and not on this one
 ```
 
-**Two sockets, and only one of them ever carries a value.** On a flagged exchange the component
-returns `blocked` and no `messages` key at all, so the generator is not called with a shortened
-message list - it is not called. Connect `blocked` to whatever should answer the user instead. The
+**Two sockets, one value.** On a flagged exchange `run` returns `blocked` and no `messages` key, so
+the generator is not called at all. Connect `blocked` to whatever answers the user instead. The
 decision is for the exchange, not for one message. This side never edits a turn: a typed jailbreak
-is not spliced into anything - it *is* the turn - so there is nothing to cut out of it.
+is not spliced into anything - it *is* the turn.
 
 ## Measured
 
-The question is never the detector's recall - that is published with the detector - but what the
-pipeline delivers with the component in it and without.
+Not the detector's recall - that ships with the detector - but what the pipeline delivers with the
+component and without.
 
 **Material** - [Quadrat-IPI v1.0.1](https://huggingface.co/datasets/mihailgribov/quadrat-ipi),
 1000 injected + 1000 clean documents, `mode="redact"`:

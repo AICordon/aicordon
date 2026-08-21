@@ -29,9 +29,9 @@ from aicordon.guard import DialogueGuard, TurnGuard          # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 
-# Each dialogue is an exchange of several turns, in the order it would go into the model. The
-# attack is the LAST user turn; an innocuous one may come before it, so that the exchange looks like
-# a real chat and so that it is visible that the decision is for the exchange, not for one string.
+# Each dialogue is an exchange of several turns, in the order it would go into the model. The attack
+# is the LAST user turn; an innocuous one may come before it, so the exchange looks like a real chat
+# and the decision is visibly made for the exchange, not for one string.
 #
 # (id, kind of jailbreak) -> turns. The kind is there for readability only; the threat names that
 # actually fired are filled into dialog_manifest.jsonl by the run, not by these labels.

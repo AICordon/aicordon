@@ -43,9 +43,8 @@ one PR to `deepset-ai/haystack-integrations`. The smaller ecosystem is the point
 less, and the core carries over.
 
 For LlamaIndex the material slot is `IngestionPipeline(transformations=[...])` ahead of the
-splitter; for LangChain it is `BaseDocumentTransformer`. CrewAI has no such slot at all: chunking
-sits inside the knowledge source, so intercepting means subclassing `BaseKnowledgeSource` — which is
-why it comes last rather than first.
+splitter; for LangChain, `BaseDocumentTransformer`. CrewAI has no slot at all — chunking sits inside
+the knowledge source, and intercepting means subclassing `BaseKnowledgeSource` — so it goes last.
 
 Their request slot is **not yet established from the sources**: for LangChain the candidate is a
 `Runnable` link ahead of the model in LCEL, for LlamaIndex the chat engine's wrapping. Establish it

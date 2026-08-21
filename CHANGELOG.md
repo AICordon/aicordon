@@ -5,9 +5,8 @@
 ### The policy now ships with the detector: `aicordon.guard`
 
 Putting Picket into a pipeline takes more than calling `check()`. Something has to pick the rule set,
-decide what a finding costs — annotate, cut, drop the document, refuse the exchange — and write the
-verdict where the next stage can see it. That is the same in every framework, so it lives next to the
-detector instead of inside each wrapper.
+decide what a finding costs, and write the verdict where the next stage can see it. That part is the
+same in every framework, so it lives next to the detector instead of inside each wrapper.
 
 ```python
 from aicordon.guard import InjectionGuard, DialogueGuard
@@ -18,8 +17,8 @@ from aicordon.guard import InjectionGuard, DialogueGuard
   characters. Metadata is written on every document it read, including the clean ones: "read, clean"
   and "not read" are different facts.
 * `DialogueGuard` and `TurnGuard` read **the request** with the `dpi` rules. A role map (`user` by
-  default), and one verdict for the whole exchange: dropping the flagged turn and calling the model
-  with the rest is no defence, it answers the message before it.
+  default), and one verdict per exchange: drop the flagged turn and the model answers the one
+  before it.
 
 Which side applies follows from the role of the text, not from who fetched it. Your code knows the
 difference — it puts material and request in different places when it assembles the call.

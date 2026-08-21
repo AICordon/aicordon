@@ -87,7 +87,7 @@ The second component is `PromptInjectionGuard`, in
    error of any kind. We read `texts` and join them. Covered by a test.
 3. **The text of a tool result is NOT in `texts`.** For role `tool` the content sits in
    `tool_call_result.result` and `texts` is empty. A wrapper reading only `texts` would check the
-   role against an empty string and write "read, clean" — the quiet kind of wrong. We read `texts`
+   role against an empty string and write "read, clean", which is worse than a crash. We read `texts`
    plus the call results; the calls themselves (`tool_calls`) we do not, they are the model's output
    rather than what it was given. Covered by a test.
 4. **Edit a message only through a copy**: `ChatMessage` carries `@_warn_on_inplace_mutation`, and
@@ -97,5 +97,4 @@ The second component is `PromptInjectionGuard`, in
 5. **The same serialisation trap as in the filter**, now with a dict parameter: `roles` has to sit
    on the object under its own name and be listed in `to_dict`. Covered by a YAML round trip.
 6. **The decision is for the exchange, not for a message.** Dropping the flagged turn and calling
-   the model with the rest is not allowed: the model answers the message before it, and whoever drew
-   the single arrow never finds out.
+   the model with the rest is not allowed: the model then answers the message before it.
