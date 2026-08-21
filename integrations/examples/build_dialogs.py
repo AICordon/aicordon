@@ -1,22 +1,22 @@
-"""Собрать демонстрационный набор ДИАЛОГОВ и проверить его прогоном детектора.
+"""Build the demonstration set of DIALOGUES and verify it by running the detector over it.
 
-Пара к `build.py`: тот собирает материал (`ipi`), этот — запрос (`dpi`). Носитель здесь не
-документ, а обмен репликами, который уходит в генератор, и проверяется не «что доедет до
-хранилища», а «пойдёт ли этот обмен в модель».
+The pair to `build.py`: that one builds material (`ipi`), this one the request (`dpi`). The carrier
+here is not a document but the exchange on its way into the generator, and what is checked is not
+"how much reaches the store" but "does this exchange go to the model at all".
 
-Набор ИЛЛЮСТРАТИВНЫЙ: атаки написаны так, чтобы нынешняя база `dpi` на них срабатывала, чистые —
-так, чтобы молчала. Это витрина, а не мера. Отсюда два требования, которые скрипт проверяет и без
-которых набор не выпускается:
+The set is ILLUSTRATIVE: the attacks are written so that the current `dpi` base fires on them and
+the clean exchanges so that it stays quiet. It is a shop window, not a measure. Hence the two
+requirements the script checks, without which the set is not released:
 
-    каждый атакующий обмен   -> DialogueGuard не пускает его в модель
-    каждый чистый обмен      -> DialogueGuard пускает его в модель
+    every attacking exchange   -> DialogueGuard keeps it out of the model
+    every clean exchange       -> DialogueGuard lets it through
 
-Атаки набраны нами, не взяты из живого корпуса форумных джейлбрейков: тот держит настоящие чужие
-реплики и в поставку не идёт. Чистые реплики — намеренно трудные: разговор про безопасность,
-просьба написать системный промпт, разбор чужой инъекции, ролевая игра. Имена персонажей
-вымышлены.
+The attacks are written by us rather than taken from the live corpus of forum jailbreaks: that one
+holds real turns written by other people and does not travel in a release. The clean turns are
+deliberately hard: a conversation about security, a request to write a system prompt, an analysis of
+somebody else's injection, a role-play. Every character in them is invented.
 
-    python3 build_dialogs.py        # собрать, проверить, записать dialogues.jsonl и dialog_manifest.jsonl
+    python3 build_dialogs.py        # build, verify, write dialogues.jsonl and dialog_manifest.jsonl
 """
 from __future__ import annotations
 
@@ -29,12 +29,12 @@ from aicordon.guard import DialogueGuard, TurnGuard          # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 
-# Каждый диалог — обмен из нескольких реплик в том порядке, в каком он уйдёт в модель. Атака — это
-# ПОСЛЕДНЯЯ реплика пользователя; ей может предшествовать безобидная, чтобы обмен был похож на
-# настоящий чат, и заодно чтобы было видно: решение принимается на весь обмен, а не на одну строку.
+# Each dialogue is an exchange of several turns, in the order it would go into the model. The
+# attack is the LAST user turn; an innocuous one may come before it, so that the exchange looks like
+# a real chat and so that it is visible that the decision is for the exchange, not for one string.
 #
-# (id, тип джейлбрейка) -> реплики. Тип нужен только для читаемости витрины; сработавшие имена
-# угроз проставляет прогон в dialog_manifest.jsonl, а не эти подписи.
+# (id, kind of jailbreak) -> turns. The kind is there for readability only; the threat names that
+# actually fired are filled into dialog_manifest.jsonl by the run, not by these labels.
 ATTACKS: list[tuple[str, str, list[tuple[str, str]]]] = [
     (
         "policy-cancel",
@@ -125,8 +125,8 @@ ATTACKS: list[tuple[str, str, list[tuple[str, str]]]] = [
     ),
 ]
 
-# Чистые обмены — намеренно рядом с атаками по словам («ignore», «cancel», «refuse», «jailbreak»,
-# «role-play»), но без попытки снять с модели правила. Ни один не должен срабатывать.
+# The clean exchanges sit deliberately close to the attacks in wording ("ignore", "cancel",
+# "refuse", "jailbreak", "role-play") without trying to take a rule off the model. None may fire.
 CLEANS: list[tuple[str, list[tuple[str, str]]]] = [
     ("rag-defense", [
         ("user",

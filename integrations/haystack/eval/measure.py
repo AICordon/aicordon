@@ -61,7 +61,7 @@ def run_arm(docs: list[Document], guarded: bool, mode: str) -> tuple[dict[str, s
     # In batches, so a long run prints progress and a failure does not lose everything before it.
     for i in range(0, len(docs), 250):
         pipe.run({entry: {"documents": docs[i:i + 250]}})
-        print(f"  {'с фильтром' if guarded else 'без фильтра'}: {min(i + 250, len(docs))}"
+        print(f"  {'with the filter' if guarded else 'without it'}: {min(i + 250, len(docs))}"
               f"/{len(docs)}", flush=True)
     seconds = time.perf_counter() - t0
 
@@ -84,24 +84,30 @@ def survival(payload: str, indexed: str) -> float:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--docs", type=int, default=2000, help="позитивов; столько же чистых")
+    ap.add_argument("--docs", type=int, default=2000, help="positives; as many clean ones")
     ap.add_argument("--mode", default="redact", choices=("redact", "drop", "annotate"))
-    # Срез по оси цели. Отдельное число по `disclose` — не подгонка, а ответ на другой вопрос:
-    # что интеграция делает ТАМ, ГДЕ детектор работает. Общий по корпусу остаётся рядом, и в
-    # отчёте обязаны стоять оба, иначе срез читается как результат по всему набору.
-    ap.add_argument("--action", help="срез по цели инъекции; через запятую можно несколько, "
-                                     "напр. disclose,exfiltrate")
+    ap.add_argument("--data", type=Path, default=DATA,
+                    help="Quadrat-IPI data directory (positives.jsonl, negatives.jsonl)")
+    # A slice along the goal axis. A separate number for `disclose` is not fitting but the answer to
+    # a different question: what the integration does WHERE the detector works. The figure for the
+    # whole corpus stays next to it, and a report has to carry both — on its own, a slice reads as
+    # the result over the whole set.
+    ap.add_argument("--action", help="slice by the goal of the injection; comma-separated for "
+                                     "several, e.g. disclose,exfiltrate")
     a = ap.parse_args()
 
-    pos = [json.loads(l) for l in (DATA / "positives.jsonl").open()]
-    neg = [json.loads(l) for l in (DATA / "negatives.jsonl").open()]
+    if not a.data.is_dir():
+        raise SystemExit(f"no corpus at {a.data}: pass --data, or fetch Quadrat-IPI from "
+                         f"https://huggingface.co/datasets/mihailgribov/quadrat-ipi")
+    pos = [json.loads(l) for l in (a.data / "positives.jsonl").open()]
+    neg = [json.loads(l) for l in (a.data / "negatives.jsonl").open()]
     if a.action:
         wanted = {x.strip() for x in a.action.split(",")}
         pos = [r for r in pos if r.get("action") in wanted]
-        print(f"срез: action in {sorted(wanted)}, доступно {len(pos)}", flush=True)
+        print(f"slice: action in {sorted(wanted)}, {len(pos)} available", flush=True)
     pos = pos[::max(1, len(pos) // a.docs)][:a.docs]
     neg = neg[::max(1, len(neg) // a.docs)][:a.docs]
-    print(f"позитивов {len(pos)}, чистых {len(neg)}, режим {a.mode}", flush=True)
+    print(f"{len(pos)} injected, {len(neg)} clean, mode {a.mode}", flush=True)
 
     payload = {}
     docs = []
@@ -145,13 +151,13 @@ def main() -> int:
     (HERE / f"result-{a.mode}{'-' + a.action.replace(',', '_') if a.action else ''}.json").write_text(json.dumps(out, ensure_ascii=False, indent=1))
 
     n = len(rows)
-    print(f"\nдоехало до хранилища целиком: {intact_before}/{n} ({intact_before/n:.1%}) без фильтра"
-          f"  ->  {intact_after}/{n} ({intact_after/n:.1%}) с фильтром")
-    print(f"от нагрузки не осталось следа: {gone_after}/{n} ({gone_after/n:.1%})")
-    print(f"чистые документы: выброшено {dropped_clean}, подрезано {trimmed_clean} "
-          f"из {len(clean_damage)}")
-    print(f"время индексации: {base_s:.1f} с без фильтра, {guard_s:.1f} с с фильтром "
-          f"({(guard_s - base_s) / max(1, len(docs)) * 1000:.2f} мс на документ сверху)")
+    print(f"\npayload reached the store intact: {intact_before}/{n} ({intact_before/n:.1%}) without"
+          f" the filter  ->  {intact_after}/{n} ({intact_after/n:.1%}) with it")
+    print(f"payload gone without a trace: {gone_after}/{n} ({gone_after/n:.1%})")
+    print(f"clean documents: {dropped_clean} dropped, {trimmed_clean} trimmed "
+          f"out of {len(clean_damage)}")
+    print(f"indexing time: {base_s:.1f} s without the filter, {guard_s:.1f} s with it "
+          f"({(guard_s - base_s) / max(1, len(docs)) * 1000:.2f} ms per document added)")
     return 0
 
 

@@ -1,17 +1,18 @@
-"""Числа НА ДЕМОНСТРАЦИОННОМ наборе диалогов: что показывает витрина запроса, если её честно померить.
+"""Numbers on the DEMONSTRATION set of dialogues: the request window, measured honestly.
 
-Пара к `measure_demo.py`: тот меряет материал (`ipi`), этот — запрос (`dpi`). И так же, как там,
-эти числа НЕЛЬЗЯ выдавать за качество детектора: набор витринный, атаки подобраны из срабатывающих,
-чистые — из молчащих. Мерные числа диалоговой стороны берутся на отложенных форумных джейлбрейках и
-живом трафике и живут в README интеграции рядом.
+The pair to `measure_demo.py`: that one measures material (`ipi`), this one the request (`dpi`). And
+as there, these numbers MUST NOT be passed off as the detector's quality: the set is a shop window,
+its attacks were picked from what fires and its clean exchanges from what stays quiet. The measured
+numbers for the request side are taken on held-out forum jailbreaks and live traffic, and they live
+in the integration README next door.
 
-Что здесь считается:
+What is counted here:
 
-    заблокировано атак      — обмены, которые обёртка не пустила в модель
-    чистые дошли до модели  — обмены, которые прошли нетронутыми
-    расхождений с детектором — вердикт обёртки против голого TurnGuard на той же реплике; ОБЯЗАН
-                               быть ноль. Обёртка не имеет права ни терять текст, ни добавлять
-                               своего; если это число не ноль, остальные читать нельзя.
+    attacks blocked          - exchanges the wrapper kept out of the model
+    clean reached the model  - exchanges that went through untouched
+    disagreements with the   - the wrapper's verdict against a bare TurnGuard on the same turn; MUST
+    detector                   be zero. A wrapper has no licence either to lose text or to add its
+                               own; if that number is not zero, the rest must not be read.
 
     python3 measure_demo_dialog.py
 """
@@ -58,12 +59,12 @@ def main() -> int:
     seconds = time.perf_counter() - t0
 
     n_turns = sum(len(r["turns"]) for r in rows)
-    print(f"диалогов {len(rows)} ({len(attacks)} атак, {len(cleans)} чистых), "
-          f"реплик {n_turns}, {seconds * 1000:.0f} мс "
-          f"({seconds / len(rows) * 1000:.1f} мс на обмен), база {guard.base_version}\n")
-    print(f"атак заблокировано       : {blocked}/{len(attacks)} ({blocked / len(attacks):.0%})")
-    print(f"чистые дошли до модели   : {clean_through}/{len(cleans)} ({clean_through / len(cleans):.0%})")
-    print(f"расхождений с детектором : {mismatch}   <- обязан быть 0")
+    print(f"{len(rows)} dialogues ({len(attacks)} attacks, {len(cleans)} clean), "
+          f"{n_turns} turns, {seconds * 1000:.0f} ms "
+          f"({seconds / len(rows) * 1000:.1f} ms per exchange), base {guard.base_version}\n")
+    print(f"attacks blocked          : {blocked}/{len(attacks)} ({blocked / len(attacks):.0%})")
+    print(f"clean reached the model  : {clean_through}/{len(cleans)} ({clean_through / len(cleans):.0%})")
+    print(f"disagreements with det.  : {mismatch}   <- must be 0")
     return 1 if mismatch else 0
 
 

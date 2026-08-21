@@ -4,12 +4,15 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aicordon-haystack"
-version = "0.0.2"
+version = "0.1.0"
 description = "Check what an LLM is given for prompt injection: material at ingest, and the turn it answers"
 readme = "README.md"
 requires-python = ">=3.10"
 license = "Apache-2.0"
-authors = [{ name = "Mike Gribov" }]
+# The text travels WITH the wheel. `license = "Apache-2.0"` is only a label in the metadata, and a
+# wheel that names a licence it does not carry makes the reader go and look for it.
+license-files = ["LICENSE"]
+authors = [{ name = "Mikhail Gribov", email = "mihail.gribov.rs@gmail.com" }]
 keywords = ["haystack", "prompt-injection", "jailbreak", "rag", "llm-security", "guardrails"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -18,13 +21,16 @@ classifiers = [
     "Topic :: Security",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-dependencies = ["haystack-ai>=3.0.0", "aicordon>=1.0.0"]
+# `aicordon>=1.1.0`, not `>=1.0.0`: the policy this wrapper imports (`aicordon.guard`) was folded
+# into the detector in 1.1.0. Against 1.0.0 the install resolves and the import fails — the failure
+# lands on the user, at the first line of their pipeline.
+dependencies = ["haystack-ai>=3.0.0", "aicordon>=1.1.0"]
 
-# TODO before publishing: point these at the repository that actually holds the integration code.
 [project.urls]
-Homepage = "https://github.com/AICordon/aicordon"
+Homepage = "https://github.com/AICordon/aicordon/blob/main/integrations/haystack/README.md"
 Repository = "https://github.com/AICordon/aicordon"
 Issues = "https://github.com/AICordon/aicordon/issues"
+Changelog = "https://github.com/AICordon/aicordon/blob/main/integrations/haystack/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 # The namespace package of the host: an integration installs into `haystack_integrations` so that

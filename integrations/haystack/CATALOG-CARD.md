@@ -10,8 +10,14 @@ README:
     Evaluation Framework | Custom Component | Tool Integration | Other
   - one card per PACKAGE, not per component: `aicordon-haystack` ships two components under one card.
 
-BEFORE SUBMITTING, resolve the two TODOs below (repo URL, logo) and publish the package to PyPI so
-the `pypi` link resolves.
+SUBMIT ONLY AFTER `aicordon-haystack` IS ON PyPI: at least one of `pypi`/`repo` must resolve for a
+merge, and a card pointing at a package that is not there yet is a rejection asking to happen. The
+order is: merge the integration branch into `main` and push (the `repo` link and the README links
+inside this card resolve off `main`), publish `aicordon` >= 1.1.0, publish `aicordon-haystack`, then
+open this PR.
+
+`logo` is optional and is deliberately not set: a logo lives in the catalogue repository, not ours,
+and adding one is a separate PR that can follow at any time.
 -->
 ---
 layout: integration
@@ -22,10 +28,9 @@ authors:
       socials:
         github: mihail-gribov
 pypi: https://pypi.org/project/aicordon-haystack
-repo: https://github.com/AICordon/aicordon     # TODO: point at the repo that actually holds the integration code before submitting
+repo: https://github.com/AICordon/aicordon
 report_issue: https://github.com/AICordon/aicordon/issues
 type: Custom Component
-# logo: /logos/aicordon.png                    # TODO: add a logo to the catalogue repo and set this
 version: Haystack 3.0
 toc: true
 ---

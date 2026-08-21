@@ -1,8 +1,9 @@
-"""Числа НА ДЕМОНСТРАЦИОННОМ наборе: что показывает витрина, если её честно померить.
+"""Numbers on the DEMONSTRATION set: what the shop window shows when it is measured honestly.
 
-Эти числа нельзя выдавать за качество детектора — набор витринный, заражённая половина подобрана
-из срабатывающих. Они отвечают на другой вопрос: «то, что читатель сейчас увидит в примере, — оно
-вообще работает и не шумит?» Мерные числа берутся с квадрата и живут в README интеграции рядом.
+These must not be passed off as the detector's quality — the set is a shop window, and its infected
+half was picked from what fires. They answer a different question: "the thing the reader is about to
+see in the example — does it work at all, and is it quiet?" The measured numbers come from Quadrat
+and live in the integration README next door.
 
     python3 measure_demo.py
 """
@@ -36,11 +37,18 @@ def survival(payload: str, text: str) -> float:
 
 
 def main() -> int:
-    rows = [json.loads(l) for l in (HERE / "corpus.jsonl").open()]
+    corpus = HERE / "corpus.jsonl"
+    if not corpus.exists():
+        # 2.7 MB of third-party carrier text: it is not in the repository. Rebuilding needs the
+        # injection bank, which is not in it either — this window is reproducible by us, not by a
+        # reader, and saying so is better than a traceback about a missing file.
+        raise SystemExit(f"no {corpus.name} here: build it with make_demo_corpus.py, which needs "
+                         f"the injection bank (not part of this repository)")
+    rows = [json.loads(l) for l in corpus.open()]
     guard = InjectionGuard(mode="redact")
     guard.warm_up()
 
-    by_host = collections.defaultdict(lambda: [0, 0, 0])     # носитель -> [снесено, тронуто, всего]
+    by_host = collections.defaultdict(lambda: [0, 0, 0])     # carrier -> [gone, touched, total]
     fp, gone, touched, n_inj = 0, 0, 0, 0
     t0 = time.perf_counter()
     for r in rows:
@@ -59,12 +67,12 @@ def main() -> int:
         b[2] += 1
     seconds = time.perf_counter() - t0
 
-    print(f"документов {len(rows)} ({n_inj} заражённых), {seconds:.1f} с "
-          f"({seconds / len(rows) * 1000:.1f} мс на документ)\n")
-    print(f"нагрузка снесена целиком : {gone}/{n_inj} ({gone / n_inj:.0%})")
-    print(f"нагрузка тронута         : {touched}/{n_inj} ({touched / n_inj:.0%})")
-    print(f"ложные на чистых         : {fp}/{len(rows) - n_inj}\n")
-    print(f"{'носитель':10s} {'снесено':>9s} {'тронуто':>9s} {'n':>5s}")
+    print(f"{len(rows)} documents ({n_inj} infected), {seconds:.1f} s "
+          f"({seconds / len(rows) * 1000:.1f} ms per document)\n")
+    print(f"payload gone entirely : {gone}/{n_inj} ({gone / n_inj:.0%})")
+    print(f"payload touched       : {touched}/{n_inj} ({touched / n_inj:.0%})")
+    print(f"false alarms on clean : {fp}/{len(rows) - n_inj}\n")
+    print(f"{'carrier':10s} {'gone':>9s} {'touched':>9s} {'n':>5s}")
     for h, (g, t, n) in sorted(by_host.items(), key=lambda x: -x[1][0] / max(1, x[1][2])):
         print(f"{h:10s} {g / n:>8.0%} {t / n:>9.0%} {n:>5d}")
     return 0

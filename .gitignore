@@ -16,6 +16,14 @@ datasets/
 data/pools/
 *.jsonl
 
+# Three exceptions, each of them ours end to end and rebuildable from the script beside it: the
+# demonstration dialogues and the two ground-truth manifests. Without them a clone cannot run
+# `measure_demo*.py` at all, and the example set cannot be read without executing anything.
+# `corpus.jsonl` is deliberately NOT here: it is 2.7 MB of third-party carrier text.
+!integrations/examples/dialogues.jsonl
+!integrations/examples/dialog_manifest.jsonl
+!integrations/examples/manifest.jsonl
+
 # The sources the base is built from stay out: the slot dictionaries and the rule file are at once
 # the recipe for the base and the instructions for walking around it. The product does not claim its
 # rules are readable; what ships is the built base, one file (`src/aicordon/picket/data/*.bin`).

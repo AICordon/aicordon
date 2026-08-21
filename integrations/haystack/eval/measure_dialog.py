@@ -1,24 +1,25 @@
-"""Приёмочный замер диалоговой стороны: сколько атак доезжает до модели, и чем за это плачено.
+"""Acceptance measurement of the request side: how many attacks reach the model, and at what price.
 
-ЧТО МЕРЯЕТСЯ, И ПОЧЕМУ НЕ RECALL. Обнаружение детектора уже опубликовано
-(`docs/eval/direct-jailbreaks-2026-08.md`) и здесь его незачем повторять. Интеграция отвечает на
-другой вопрос: из реплик, которые пришли в конвейер, сколько ДОЕХАЛО ДО ГЕНЕРАТОРА, и сколько
-настоящих пользователей осталось без ответа. Это свойство обвязки — какая роль читается, каким
-набором правил, целиком ли уходит обмен, — а не детектора.
+WHAT IS MEASURED, AND WHY NOT RECALL. The detector's detection rate is already published
+(`docs/eval/direct-jailbreaks-2026-08.md`) and there is no point restating it here. An integration
+answers a different question: of the turns that entered the pipeline, how many REACHED THE
+GENERATOR, and how many real users were left without an answer. That is a property of the wrapper —
+which role is read, with which rule set, whether the exchange goes as a whole — not of the detector.
 
-ТРЕТЬЕ ЧИСЛО ВАЖНЕЕ ДВУХ ПЕРВЫХ: расхождений между вердиктом конвейера и вердиктом голого
-детектора на той же строке должно быть НОЛЬ. Обвязка не имеет права ни терять текст (часть
-сообщения, обрезанный хвост), ни добавлять своего. Если это число не ноль, остальные читать нельзя.
+THE THIRD NUMBER MATTERS MORE THAN THE FIRST TWO: the verdict of the pipeline and the verdict of the
+bare detector on the same string must differ ZERO times. A wrapper has no licence either to lose
+text (part of a message, a truncated tail) or to add its own. If that number is not zero, the rest
+must not be read.
 
-СОСТАВ. Атаки — отложенная половина `jb_wild` + `jb_public` (тот же отбор, что в exp45/tune:
-половина по md5 от `id`, затем чистка почти-дублей по пятисловным шинглам, Jaccard > 0.3), потому
-что публичные джейлбрейки — варианты одного DAN и без этой чистки число завышено примерно на
-8 пунктов. Чистые реплики — `wildchat_user` той же отложенной половины.
+WHAT IS IN THE POOLS. The attacks are the held-out half of `jb_wild` + `jb_public` (the same
+selection as in exp45/tune: half by md5 of `id`, then near-duplicates removed by five-word shingles,
+Jaccard > 0.3) — public jailbreaks are variations on one DAN, and without that cleaning the figure
+is about 8 points too high. The clean turns are `wildchat_user` from the same held-out half.
 
-ЧИСТЫЙ ПУЛ НЕ ЧИСТ, и поправку здесь не делаем. В WildChat нет меток атаки, и настоящие
-джейлбрейки лежат внутри пула негативов: в опубликованном прогоне 41 из 144 помеченных всеми
-детекторами реплик оказались атаками. Поэтому «остались без ответа» ниже — ВЕРХНЯЯ ОЦЕНКА цены,
-а не частота ложных срабатываний; она больше настоящей.
+THE CLEAN POOL IS NOT CLEAN, and no correction is applied here. WildChat carries no attack labels,
+and real jailbreaks sit inside the negative pool: in the published run, 41 of the 144 turns flagged
+by every detector turned out to be attacks. So "left without an answer" below is an UPPER BOUND on
+the price, not a false-positive rate; the true one is lower.
 
     python eval/measure_dialog.py --turns 20000
 """
@@ -40,6 +41,8 @@ from haystack import Pipeline, component
 from haystack.dataclasses import ChatMessage
 from haystack_integrations.components.validators.aicordon import PromptInjectionGuard
 
+# Research corpus, not part of any release: it holds other people's turns. The path is the one on
+# the machine this was measured on; pass `--data` to point somewhere else.
 DIRECT = Path("/home/mike/Projects/ai-safity/experiments/45_picket_direct/data/direct.jsonl")
 HERE = Path(__file__).resolve().parent
 ATTACK_SLICES = ("jb_wild", "jb_public")
@@ -49,7 +52,7 @@ SYSTEM = "You are a helpful assistant."
 
 @component
 class Reached:
-    """Стоит на месте генератора и только считает: сюда доехало — значит, модель была бы вызвана."""
+    """Stands where the generator would and only counts: arriving here means the model was called."""
 
     def __init__(self) -> None:
         self.seen: list[str] = []
@@ -61,7 +64,9 @@ class Reached:
 
 
 def held_out(rows: list[dict]) -> list[dict]:
-    """Отложенная половина без почти-дубля в обучающей. Тот же отбор, что в exp45/tune."""
+    """The held-out half, minus anything with a near-duplicate in the training half.
+
+    The same selection as exp45/tune, so the numbers here and there are about the same texts."""
     half = lambda k: int(hashlib.md5(k.encode()).hexdigest(), 16) % 2 == 0   # noqa: E731
 
     def shingles(text: str, k: int = 5) -> set[int]:
@@ -90,12 +95,12 @@ def held_out(rows: list[dict]) -> list[dict]:
 
 
 def build(guarded: bool) -> tuple[Pipeline, Reached]:
-    """Оба плеча — один конвейер; в защищённом на один компонент больше."""
+    """Both arms are one pipeline; the guarded one has a single component more in it."""
     reached = Reached()
     pipe = Pipeline()
     pipe.add_component("llm", reached)
     if guarded:
-        pipe.add_component("guard", PromptInjectionGuard())      # mode="drop" по умолчанию
+        pipe.add_component("guard", PromptInjectionGuard())      # mode="drop" is the default
         pipe.connect("guard.messages", "llm.messages")
     return pipe, reached
 
@@ -109,30 +114,35 @@ def run_arm(turns: list[dict], guarded: bool) -> tuple[set[str], float]:
                     ChatMessage.from_user(r["text"], meta={"turn_id": r["id"]})]
         pipe.run({entry: {"messages": messages}})
         if n % 2000 == 0 or n == len(turns):
-            print(f"  {'с проверкой' if guarded else 'без проверки'}: {n}/{len(turns)}", flush=True)
+            print(f"  {'with the guard' if guarded else 'without it'}: {n}/{len(turns)}", flush=True)
     return set(reached.seen), time.perf_counter() - t0
 
 
 def main() -> int:
-    # Компонент пишет предупреждение на каждую находку — здесь их сотни, и они прячут прогресс.
+    # The component logs a warning per finding — there are hundreds here, and they bury the progress.
     _logging.getLogger("haystack_integrations.components.validators.aicordon"
                        ".prompt_injection_guard").setLevel(_logging.ERROR)
     ap = argparse.ArgumentParser()
-    ap.add_argument("--turns", type=int, default=20000, help="чистых реплик; атаки берутся все")
+    ap.add_argument("--turns", type=int, default=20000, help="clean turns; every attack is taken")
+    ap.add_argument("--data", type=Path, default=DIRECT, help="jsonl with `id`, `text`, `slice`")
     ap.add_argument("--json", default="result-dialog.json")
     a = ap.parse_args()
 
-    rows = [json.loads(l) for l in DIRECT.open()]
+    if not a.data.exists():
+        raise SystemExit(f"no corpus at {a.data}: pass --data with a jsonl carrying the slices "
+                         f"{ATTACK_SLICES} and {CLEAN_SLICE!r}")
+    rows = [json.loads(l) for l in a.data.open()]
     attacks = held_out([r for r in rows if r["slice"] in ATTACK_SLICES])
     clean = [r for r in rows if r["slice"] == CLEAN_SLICE]
     clean = clean[::max(1, len(clean) // a.turns)][:a.turns]
-    print(f"атак отложено {len(attacks)}, чистых реплик {len(clean)}", flush=True)
+    print(f"{len(attacks)} held-out attacks, {len(clean)} clean turns", flush=True)
 
     turns = attacks + clean
     base_seen, base_s = run_arm(turns, guarded=False)
     guard_seen, guard_s = run_arm(turns, guarded=True)
 
-    # Сверка с голым детектором: обвязка обязана видеть ровно ту же строку.
+    # Against the bare detector: the wrapper is obliged to see exactly the same string. A turn is a
+    # mismatch when it was flagged AND reached the model, or was not flagged AND did not.
     from aicordon import picket
     det = picket.load(mode="dpi")
     mismatch = [r["id"] for r in turns
@@ -154,14 +164,14 @@ def main() -> int:
     (HERE / a.json).write_text(json.dumps(out, ensure_ascii=False, indent=1))
 
     n, m = len(a_ids), len(c_ids)
-    print(f"\nатаки дошли до модели: {a_before}/{n} ({a_before/n:.1%}) без проверки"
-          f"  ->  {a_after}/{n} ({a_after/n:.1%}) с проверкой")
-    print(f"снято: {(a_before - a_after)/n:.1%} отложенных атак")
-    print(f"чистые реплики остались без ответа: {m - c_after}/{m} ({(m - c_after)/m:.3%}) "
-          f"— верхняя оценка, в пуле есть настоящие атаки")
-    print(f"расхождений с голым детектором: {len(mismatch)}")
-    print(f"время: {base_s:.1f} с без проверки, {guard_s:.1f} с с проверкой "
-          f"({(guard_s - base_s) / max(1, len(turns)) * 1000:.2f} мс на реплику сверху)")
+    print(f"\nattacks reaching the model: {a_before}/{n} ({a_before/n:.1%}) without the guard"
+          f"  ->  {a_after}/{n} ({a_after/n:.1%}) with it")
+    print(f"stopped: {(a_before - a_after)/n:.1%} of the held-out attacks")
+    print(f"clean turns left without an answer: {m - c_after}/{m} ({(m - c_after)/m:.3%}) "
+          f"— an upper bound, the pool holds real attacks")
+    print(f"verdicts differing from the bare detector: {len(mismatch)}")
+    print(f"time: {base_s:.1f} s without the guard, {guard_s:.1f} s with it "
+          f"({(guard_s - base_s) / max(1, len(turns)) * 1000:.2f} ms per turn added)")
     return 0
 
 

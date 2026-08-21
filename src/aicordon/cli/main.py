@@ -434,8 +434,8 @@ def cmd_version(product: Product, a) -> int:
     """Always works, even when the engine did not come up: the tool version does not depend on the
     base."""
     st = render.make_style(a.no_color)
-    # ПОЛНОЕ имя продукта: «AI Cordon Picket», а не «Picket от AI Cordon». Вендор и название
-    # неразделимы — по отдельности «Picket» ничего не значит и уже занято на PyPI чужим пакетом.
+    # The FULL product name: "AI Cordon Picket", not "Picket by AI Cordon". Vendor and name are
+    # inseparable - on its own "Picket" says nothing and is already taken on PyPI by someone else.
     print(f"  {product.vendor} {product.title} {product.version}")
     try:
         det = _build(product, a)

@@ -322,6 +322,26 @@ put where: [cli.md](https://github.com/AICordon/aicordon/blob/main/docs/cli.md).
 contract — modes at `load()`, severity, thread safety, streaming, async, JSON:
 [library.md](https://github.com/AICordon/aicordon/blob/main/docs/library.md).
 
+## In a framework
+
+Two places in a pipeline hold text a model is about to read, and each has its own rule set: the
+**material** on the way into the index, and the **request** on the way into the generator. The
+policy for both — which rules, what to do with a finding, what to write in the metadata — is part of
+the package (`aicordon.guard`), so a wrapper for a framework is a translation of its types and
+nothing more.
+
+```console
+$ pip install aicordon-haystack
+```
+
+```python
+from haystack_integrations.components.preprocessors.aicordon import PromptInjectionFilter
+from haystack_integrations.components.validators.aicordon import PromptInjectionGuard
+```
+
+What each component connects to, and what a pipeline delivers with it and without:
+[integrations/haystack](https://github.com/AICordon/aicordon/blob/main/integrations/haystack/README.md).
+
 ## The base and its version
 
 The detection base ships as one file under `src/aicordon/picket/data/`, and its name says

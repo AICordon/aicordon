@@ -1,98 +1,104 @@
-# Haystack: контракт, выясненный по исходникам
+# Haystack: the contract, established from the sources
 
-Проверено 2026-08-13. Клон `upstream/` на `ba92ec9` — это **3.1.0-rc0**, то есть ветка разработки;
-последний ВЫПУЩЕННЫЙ релиз — **v3.0.0** (20.07.2026). Макет пишем под 3.0.x, а по клону сверяем,
-не разъезжается ли контракт к 3.1.
+Checked 2026-08-13. The clone in `upstream/` at `ba92ec9` is **3.1.0-rc0**, i.e. the development
+branch; the last RELEASED version is **v3.0.0** (2026-07-20). The wrapper is written against 3.0.x,
+and the clone is what tells us whether the contract is drifting by 3.1.
 
-Репозиторий: `deepset-ai/haystack`, Apache-2.0, 26 201 звезда. Каталог сторонних интеграций —
-отдельный репозиторий `deepset-ai/haystack-integrations` (карточка через PR); то, что сопровождает
-сам deepset, живёт в `haystack-core-integrations`.
+Repository: `deepset-ai/haystack`, Apache-2.0, 26 201 stars. The catalogue of third-party
+integrations is a separate repository, `deepset-ai/haystack-integrations` (a card via PR); what
+deepset maintains itself lives in `haystack-core-integrations`.
 
-## Что обязателен делать компонент
+## What a component is obliged to do
 
-Источник истины — докстрока `haystack/core/component/component.py`, там это сказано прямо.
+The source of truth is the docstring of `haystack/core/component/component.py`, where this is said
+outright.
 
-* Класс помечается `@component`.
-* Обязателен **`run()`**; типы выхода объявляются `@component.output_types(...)`, возвращается
-  `dict` с теми же ключами.
-* **`__init__` должен быть лёгким** — он вызывается при сборке и валидации конвейера. Тяжёлую
-  инициализацию выносят в необязательный `warm_up()`, который конвейер зовёт до прогона.
-* **Параметры `__init__` — только базовые типы** (строки, числа, списки и словари из них). Объекты
-  и функции запрещены: параметры должны быть JSON-сериализуемыми, иначе конвейер не сохранить и не
-  загрузить. Если нужен объект — принимать строку с путём импорта и разрешать её внутри.
-* Вход **не изменять на месте**: работать с копией и возвращать её (`dataclasses.replace` для
-  одного поля, `deepcopy` для сложного). Иначе правка утечёт в другие ветки конвейера.
+* The class is marked `@component`.
+* **`run()`** is mandatory; output types are declared with `@component.output_types(...)`, and a
+  `dict` with those same keys is returned.
+* **`__init__` must be cheap** — it is called when the pipeline is assembled and validated. Heavy
+  initialisation goes into the optional `warm_up()`, which the pipeline calls before a run.
+* **`__init__` parameters must be primitives** (strings, numbers, and lists and dicts of them).
+  Objects and functions are forbidden: the parameters have to be JSON-serialisable, or the pipeline
+  can be neither saved nor loaded. If an object is needed, take a string with its import path and
+  resolve it inside.
+* **Do not modify the input in place**: work on a copy and return that (`dataclasses.replace` for a
+  single field, `deepcopy` for anything richer). Otherwise the edit leaks into other branches of the
+  pipeline.
 
-## Что из этого следует для нас
+## What follows for us
 
-1. Детектор — тяжёлое состояние (база 376 КБ, загрузка ~17 мс): поднимать в `warm_up()`, а не в
-   `__init__`. Иначе цена платится при каждой сборке конвейера, в том числе при валидации.
-2. В `__init__` передаём только строки: режим (`redact` / `drop` / `annotate`), префикс
-   метаданных. Никаких «передайте сюда объект детектора» — сломает сохранение конвейера.
-3. Документы копируем перед правкой текста: в индексирующем конвейере тот же список может уйти во
-   вторую ветку.
-4. Выходов делаем два — чистый поток и отклонённое. У Haystack связи именованные, поэтому
-   отклонённое можно увести в отдельное хранилище одной строкой `connect`, а не терять молча.
+1. The detector is heavy state (a 376 KB base, ~17 ms to load): raise it in `warm_up()`, not in
+   `__init__`. Otherwise the cost is paid on every pipeline assembly, validation included.
+2. Pass only strings into `__init__`: the mode (`redact` / `drop` / `annotate`), the metadata
+   prefix. No "hand the detector object in here" — that breaks saving the pipeline.
+3. Copy documents before editing their text: in an indexing pipeline the same list may go into a
+   second branch.
+4. Give the component two outputs — the clean stream and what was rejected. Haystack's connections
+   are named, so the rejected pile can be sent to a store of its own with one `connect` line instead
+   of vanishing quietly.
 
-## Куда встраиваемся
+## Where we sit
 
-Две точки, по одной на роль текста в промпте.
+Two places, one per role the text plays in the prompt.
 
-**Материал** — индексирующий конвейер: `converter → (наш компонент) → cleaner → splitter →
-embedder → writer`. Ставим ДО сплиттера: тогда вырезанная инъекция не доезжает ни до эмбеддингов,
-ни до хранилища, и не приходится сшивать границы чанков.
+**Material** — the indexing pipeline: `converter → (our component) → cleaner → splitter → embedder →
+writer`. We go BEFORE the splitter: the injection that is cut then reaches neither the embeddings
+nor the store, and no chunk boundaries have to be stitched together.
 
-**Запрос** — диалоговый конвейер: `prompt builder → (наш компонент) → chat generator`, и вторым
-проводом `blocked → тот, кто ответит вместо модели`. Ставим ВПЛОТНУЮ к генератору, на том списке
-сообщений, который в него и уйдёт: всё, что между проверкой и вызовом, — это ещё одно место, где
-текст может измениться.
+**The request** — the chat pipeline: `prompt builder → (our component) → chat generator`, with a
+second wire `blocked → whoever answers instead of the model`. We go RIGHT NEXT to the generator, on
+the message list that is about to enter it: everything between the check and the call is one more
+place where the text could change.
 
-## Ловушки, пойманные макетом (2026-08-13)
+## Traps the mock-up caught (2026-08-13)
 
-1. **Настройки молча теряются при сохранении конвейера.** Без своего `to_dict` Haystack
-   восстанавливает параметры через `getattr(obj, "<имя параметра>")`, а если атрибута нет —
-   **подставляет значение по умолчанию из сигнатуры** и ничего не сообщает. Компонент, созданный с
-   `mode="annotate"`, вернулся из YAML как `redact`. Лечение: держать параметры на объекте под теми
-   же именами И объявить `to_dict`/`from_dict` через `default_to_dict`/`default_from_dict`. В тестах
-   это закрыто прогоном YAML туда-обратно.
-2. **Порядок чанков из хранилища не гарантирован**, а `split_overlap` повторяет хвост предыдущего
-   чанка. Замер, склеивавший чанки, из-за этого показывал 92.5% там, где должно быть 100%. В
-   приёмочном замере сплиттера теперь нет вовсе: он стоит ПОСЛЕ нас и на результат не влияет.
-3. **Логирование — не режим.** Оно нужно и при `drop`, и при `annotate`, поэтому идёт через
-   `haystack.logging` на уровне `warning`, а не отдельным значением параметра.
+1. **Settings are lost silently when a pipeline is saved.** Without a `to_dict` of its own, Haystack
+   restores parameters through `getattr(obj, "<parameter name>")`, and where the attribute is
+   missing it **substitutes the default from the signature** and says nothing. A component built
+   with `mode="annotate"` came back out of YAML as `redact`. The cure: keep the parameters on the
+   object under those same names AND declare `to_dict`/`from_dict` via
+   `default_to_dict`/`default_from_dict`. Covered by a YAML round trip in the tests.
+2. **The order of chunks out of a store is not guaranteed**, and `split_overlap` repeats the tail of
+   the previous chunk. A measurement that glued chunks back together reported 92.5% where the answer
+   is 100% because of it. The acceptance measurement now has no splitter in it at all: it stands
+   AFTER us and cannot affect the result.
+3. **Logging is not a mode.** It is wanted under `drop` as much as under `annotate`, so it goes
+   through `haystack.logging` at `warning` level rather than being a value of the parameter.
 
-## Что дальше, если брать LlamaIndex или LangChain
+## What carries over to LlamaIndex or LangChain
 
-Ядро (`integrations/core`) переносится как есть: там режимы, границы среза и метаданные. Обёртка —
-это перевод типа документа в строку и обратно плюс контракт хоста. У LlamaIndex это
-`TransformComponent.__call__(nodes)`, у LangChain — `BaseDocumentTransformer.transform_documents`.
-Отдельно проверить у них аналог сериализации: терять режим молча умеет не только Haystack.
+The policy (`aicordon.guard`) carries over as it is: the modes, where the cut ends and the metadata
+are all in there. A wrapper is the translation of the host's document type into a string and back,
+plus the host's contract. For LlamaIndex that is `TransformComponent.__call__(nodes)`, for LangChain
+`BaseDocumentTransformer.transform_documents`. Check their equivalent of serialisation separately:
+Haystack is not the only framework that can lose a mode without a word.
 
-## Диалоговая сторона: контракт и ловушки (2026-08-18)
+## The request side: contract and traps (2026-08-18)
 
-Второй компонент — `PromptInjectionGuard` в
-`haystack_integrations.components.validators.aicordon`. Категория `validators`, а не
-`preprocessors`: он ничего не готовит, он решает, звать ли модель.
+The second component is `PromptInjectionGuard`, in
+`haystack_integrations.components.validators.aicordon`. Category `validators` rather than
+`preprocessors`: it prepares nothing, it decides whether to call the model.
 
-1. **Ветвление у Haystack — это ОТСУТСТВУЮЩИЙ ключ в возвращённом словаре, а не пустой список.**
-   Приёмник получает `_NoOutputProduced` (`core/pipeline/component_checks.py`) и не запускается
-   вовсе. Вернуть `{"messages": [], "blocked": [...]}` — значит позвать генератор с пустым списком.
-   Поэтому `run` возвращает ровно один ключ из двух. Закрыто тестом с контролем: на чистой реплике
-   следующий компонент в выводе конвейера ЕСТЬ, на помеченной — нет.
-2. **`ChatMessage.text` — это ПЕРВАЯ текстовая часть, а не всё сообщение.** У сообщения с картинкой
-   части идут списком, и атака во второй текстовой части при чтении `text` не видна, без всякой
-   ошибки. Читаем `texts` и склеиваем. Закрыто тестом.
-3. **Текста результата инструмента в `texts` НЕТ.** У сообщения роли `tool` содержимое лежит в
-   `tool_call_result.result`, а `texts` пустой. Обёртка, читающая только `texts`, проверяла бы роль
-   `tool` по пустой строке и записывала бы в метаданные «прочитано, чисто» — тихая разновидность
-   неверного. Читаем `texts` + результаты вызовов; сами вызовы (`tool_calls`) не читаем, это вывод
-   модели, а не то, что ей дали. Закрыто тестом.
-4. **Правку сообщения только копией**: у `ChatMessage` стоит `@_warn_on_inplace_mutation`, а тот же
-   список может уйти во вторую ветку конвейера. Копия — `dataclasses.replace(msg, _meta=...)`
-   (поля датакласса с подчёркиванием, это их настоящие имена в `__init__`).
-5. **Та же ловушка с сериализацией, что и у фильтра**, и теперь с параметром-словарём: `roles`
-   обязан лежать на объекте под своим именем и быть перечислен в `to_dict`. Закрыто прогоном YAML
-   туда-обратно.
-6. **Решение — на весь обмен, а не на сообщение.** Выкинуть помеченную реплику и позвать модель с
-   остатком нельзя: модель ответит на предыдущее сообщение, а тот, кто нарисовал одну стрелку, об
-   этом не узнает.
+1. **A branch in Haystack is an ABSENT key in the returned dict, not an empty list.** The receiver
+   gets `_NoOutputProduced` (`core/pipeline/component_checks.py`) and does not run at all. Returning
+   `{"messages": [], "blocked": [...]}` means calling the generator with an empty list. So `run`
+   returns exactly one of the two keys. Covered by a test with a control: on a clean turn the next
+   component IS in the pipeline output, on a flagged one it is not.
+2. **`ChatMessage.text` is the FIRST text part, not the whole message.** In a message with an image
+   the parts come as a list, and an attack in the second text part is invisible to `text` — with no
+   error of any kind. We read `texts` and join them. Covered by a test.
+3. **The text of a tool result is NOT in `texts`.** For a message with role `tool` the content sits
+   in `tool_call_result.result` while `texts` is empty. A wrapper reading `texts` alone would check
+   the `tool` role against an empty string and write "read, clean" into the metadata — the quiet
+   kind of wrong. We read `texts` plus the call results; the calls themselves (`tool_calls`) we do
+   not read, as they are the model's output rather than what was given to it. Covered by a test.
+4. **Edit a message only through a copy**: `ChatMessage` carries `@_warn_on_inplace_mutation`, and
+   the same list may go into a second branch of the pipeline. The copy is
+   `dataclasses.replace(msg, _meta=...)` (the underscored dataclass fields are their real names in
+   `__init__`).
+5. **The same serialisation trap as in the filter**, now with a dict parameter: `roles` has to sit
+   on the object under its own name and be listed in `to_dict`. Covered by a YAML round trip.
+6. **The decision is for the exchange, not for a message.** Dropping the flagged turn and calling
+   the model with the rest is not allowed: the model answers the message before it, and whoever drew
+   the single arrow never finds out.

@@ -1,38 +1,43 @@
-# Примеры для документации интеграций
+# Examples for the integration documentation
 
-Маленькие наборы под примеры в README, карточках каталогов и тестах обёрток. Точек встраивания
-две, по роли текста в промпте — материал и запрос, — и на каждую свой набор.
+Small sets behind the snippets in READMEs, catalogue cards and wrapper tests. There are two places
+to sit, by the role the text plays in the prompt — material and request — and each gets a set of its
+own.
 
-**Не из квадрата** — по двум причинам: квадрат это мерная линейка, и растаскивать его строки по
-витринам значит загрязнять чужие замеры; и отбор примеров «где сработало» из мерного набора
-незаметно превращается в подгонку. Тексты наши, без персональных данных, имена и адреса вымышленные.
+**Not taken from Quadrat**, for two reasons: Quadrat is a measuring stick, and scattering its rows
+across shop windows contaminates somebody else's measurement; and picking the examples "where it
+fired" out of a measuring set quietly turns into fitting. These texts are ours, carry no personal
+data, and every name and address in them is invented.
 
-## Материал (`ipi`) — документы на приёме
+## Material (`ipi`) — documents at ingest
 
-Носители — те, что реально попадают в индекс RAG: страница вики, тикет поддержки, заметки со
-встречи, статья базы знаний, страница сайта. Цели инъекций — тоже RAG-естественные: подменить
-ответ, увести задачу, вытащить данные наружу.
+The carriers are the ones that really end up in a RAG index: a wiki page, a support ticket, meeting
+notes, a knowledge-base article, a web page. The injection goals are RAG-natural as well: replace
+the answer, divert the task, get data out.
 
-`manifest.jsonl` хранит правду: где лежит нагрузка (`inj_span`), чего она добивается (`action`) и
-срабатывает ли на ней нынешняя база (`caught`, проставляется прогоном, а не рукой).
+`manifest.jsonl` holds the ground truth: where the payload sits (`inj_span`), what it is after
+(`action`), and whether the current base fires on it (`caught`, filled in by a run, not by hand).
 
-    python3 build.py            # собрать, проверить, записать docs/ и manifest.jsonl
-    python3 measure_demo.py     # честные числа по витрине материала
+    python3 build.py            # build, verify, write docs/ and manifest.jsonl
+    python3 measure_demo.py     # honest numbers for the material window
 
-## Запрос (`dpi`) — реплики перед генератором
+## The request (`dpi`) — turns ahead of the generator
 
-Носитель — обмен репликами, который уходит в модель. Атака здесь не вклеена в документ, она и есть
-реплика: попытка снять с модели правила (отмена инструкций, амораль-персона, ролевая рамка, «без
-предупреждений»). Джейлбрейки набраны нами — живой корпус форумных джейлбрейков держит настоящие
-чужие реплики и в поставку не идёт. Чистые обмены намеренно трудные: они лежат рядом с атаками по
-словам («ignore», «cancel», «refuse», «jailbreak», «role-play»), но правил с модели не снимают.
+The carrier is the exchange that goes into the model. The attack here is not spliced into a
+document, it *is* the turn: an attempt to take the rules off the model (cancelling instructions, an
+amoral persona, a role-play frame, "no warnings"). The jailbreaks are written by us — the live
+corpus of forum jailbreaks holds real turns written by other people and does not travel in a
+release. The clean exchanges are deliberately hard: they sit right next to the attacks in wording
+("ignore", "cancel", "refuse", "jailbreak", "role-play") while taking no rule off the model.
 
-Решение принимается на весь обмен, поэтому и в наборе носитель — список реплик, а не одна строка.
-`dialog_manifest.jsonl` хранит правду: какая реплика атакует (`attack_turn`), не пустила ли её
-обёртка в модель (`caught`) и что сработало (`threats`, проставляется прогоном).
+The decision is made for the whole exchange, so the carrier in this set is a list of turns rather
+than a single string. `dialog_manifest.jsonl` holds the ground truth: which turn attacks
+(`attack_turn`), whether the wrapper kept it out of the model (`caught`), and what fired (`threats`,
+filled in by a run).
 
-    python3 build_dialogs.py         # собрать, проверить, записать dialogues.jsonl и dialog_manifest.jsonl
-    python3 measure_demo_dialog.py   # числа по витрине запроса + инвариант «расхождений с детектором 0»
+    python3 build_dialogs.py         # build, verify, write dialogues.jsonl and dialog_manifest.jsonl
+    python3 measure_demo_dialog.py   # numbers for the request window, plus the "zero disagreements" invariant
 
-Числа `measure_demo*.py` — витринные, их нельзя выдавать за качество детектора. Мерные числа
-берутся на отложенных атаках и живом трафике и живут в README интеграции рядом.
+The numbers from `measure_demo*.py` belong to the shop window and must not be passed off as the
+detector's quality. The measured ones are taken on held-out attacks and live traffic, and they live
+in the integration README next door.
