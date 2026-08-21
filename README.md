@@ -6,26 +6,21 @@
 [![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](https://github.com/AICordon/aicordon/blob/main/pyproject.toml)
 [![Network calls](https://img.shields.io/badge/network%20calls-none-brightgreen.svg)](#where-it-belongs-and-why-nothing-leaves-the-process)
 
-**Catch obvious prompt injections before they reach your model.** Locally, in milliseconds, with no
-model and no network.
+**Catch obvious prompt injections before they reach your model.**
 
-Picket is the open-source **signature layer** of AI Cordon. It works at **both ends of an agent's
-input**: an instruction planted in the material the model works on, and a jailbreak in the request
-itself.
+Picket scans large volumes of untrusted text locally, with near-zero false positives and no model
+inference: **100–200 documents a second on one CPU core**, **one false alarm per thousand** clean
+texts. It is a rule — it reads the surface of the text and matches signatures — so there is no
+network, no GPU and no dependencies. It is the open-source signature layer of AI Cordon.
 
-**100–200 documents a second on one CPU core**, at **about one false alarm per thousand** clean
-texts. The two numbers work together: fast enough to check everything as it arrives rather than a
-sample or a queue worked through later, quiet enough that an alarm is worth acting on.
+It works at **both ends of an agent's input**: an instruction planted in the material the model
+works on, and a jailbreak in the request a user types. It catches the obvious ones: **16.4%** of the
+injections in an open corpus, **34.8%** of forum jailbreaks it has never seen.
 
-It is a rule: it reads the SURFACE of the text and matches signatures. No model, no network, no
-dependencies, no GPU, nothing to wait on.
-
-**It is not a prefilter.** Silence from a rule is not a verdict — that is why the API has no
-`is_safe` field and never will. Wiring it as a cheap first stage, where "nothing found" lets a
-document skip the real check, throws away most of the attacks: the base catches the obvious sixth of
-what is out there. Its place is where a heavier check cannot go at all — a whole corpus, an ingest
-path, a mail gateway, a repository — and in front of a model it adds a layer rather than replacing
-one.
+**It is not a prefilter.** Silence from a rule is not a verdict, which is why the API has no
+`is_safe` field and never will. Its place is where a heavier check cannot go at all — a whole
+corpus, an ingest path, a mail gateway, a repository — and in front of a model it adds a layer, it
+does not replace one.
 
 **On this page**
 
