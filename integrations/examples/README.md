@@ -6,17 +6,19 @@ see which example fired, which rule fired on it, and what the wrapper did about 
 
 They are a shop window, not a measure. Every example is picked so that it behaves: the infected ones
 fire, the clean ones stay quiet. Reading a detection rate off ten chosen examples would be reading
-the selection, so no rate is printed. The measuring set is **Quadrat-IPI** — 16 800 injections
-across three carriers, published at
-[huggingface.co/datasets/mihailgribov/quadrat-ipi](https://huggingface.co/datasets/mihailgribov/quadrat-ipi) —
-and the numbers taken on it live in the integration README next door.
+the selection, so no rate is printed — each side names its own measuring set below, and the numbers
+taken on those live in the integration README next door.
 
-**Not taken from Quadrat**, for two reasons: it is a measuring stick, and scattering its rows across
-shop windows contaminates somebody else's measurement; and picking the examples "where it fired" out
-of a measuring set quietly turns into fitting. These texts are ours, carry no personal data, and
-every name and address in them is invented.
+Neither set is drawn from a measuring corpus, for two reasons: a measuring stick whose rows are
+scattered across shop windows stops measuring, and picking the examples "where it fired" out of such
+a corpus quietly turns into fitting. These texts are ours, carry no personal data, and every name
+and address in them is invented.
 
 ## Material (`ipi`) — ten documents at ingest
+
+Measured elsewhere on **Quadrat-IPI** — 16 800 injections across three carriers, published at
+[huggingface.co/datasets/mihailgribov/quadrat-ipi](https://huggingface.co/datasets/mihailgribov/quadrat-ipi).
+These ten are the window onto it, not a sample of it.
 
 Five infected, five clean. The carriers are the ones that really end up in a RAG index: a wiki page,
 a support ticket, meeting notes, a knowledge-base article, a web page. The five injections take one
@@ -35,6 +37,12 @@ word "ignore" in a sentence addressed to a person.
     python3 show_material.py    # run all ten and show every one of them
 
 ## The request (`dpi`) — ten exchanges ahead of the generator
+
+Measured elsewhere on held-out forum jailbreaks from
+[in-the-wild-jailbreak-prompts](https://huggingface.co/datasets/TrustAIRLab/in-the-wild-jailbreak-prompts)
+against real [WildChat](https://huggingface.co/datasets/allenai/WildChat-1M) turns. Quadrat does not
+apply on this side: it is a corpus of injections planted in documents, and nothing here is planted
+in anything.
 
 Five attacks, five clean. The carrier is the exchange that goes into the model, so each example is a
 list of turns rather than one string — the decision is made for the whole exchange, and two of the
