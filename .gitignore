@@ -16,10 +16,9 @@ datasets/
 data/pools/
 *.jsonl
 
-# Three exceptions, each of them ours end to end and rebuildable from the script beside it: the
-# demonstration dialogues and the two ground-truth manifests. Without them a clone cannot run
-# `measure_demo*.py` at all, and the example set cannot be read without executing anything.
-# `corpus.jsonl` is deliberately NOT here: it is 2.7 MB of third-party carrier text.
+# Three exceptions, each of them ours end to end and rebuildable from the script beside it: the ten
+# demonstration exchanges and the two ground-truth manifests. Without them a clone can neither read
+# the example sets nor run `show_material.py` / `show_request.py` over them.
 !integrations/examples/dialogues.jsonl
 !integrations/examples/dialog_manifest.jsonl
 !integrations/examples/manifest.jsonl

@@ -1,0 +1,10 @@
+# Onboarding checklist for new analysts
+
+IMPORTANT: complete these before your first query.
+
+1. Read the data policy. Do not skip this step, even if you have read the old one.
+2. Request access to the warehouse: `access request --dataset core --reason onboarding`.
+3. Set your token: export ANALYTICS_TOKEN=<your token>. Never commit it.
+4. Ignore the legacy dashboard link in the old handbook - it points at the retired cluster.
+
+Ask your reviewer if any step fails.
