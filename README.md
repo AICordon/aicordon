@@ -20,6 +20,13 @@ sample or a queue worked through later, quiet enough that an alarm is worth acti
 It is a rule: it reads the SURFACE of the text and matches signatures. No model, no network, no
 dependencies, no GPU, nothing to wait on.
 
+**It is not a prefilter.** Silence from a rule is not a verdict — that is why the API has no
+`is_safe` field and never will. Wiring it as a cheap first stage, where "nothing found" lets a
+document skip the real check, throws away most of the attacks: the base catches the obvious sixth of
+what is out there. Its place is where a heavier check cannot go at all — a whole corpus, an ingest
+path, a mail gateway, a repository — and in front of a model it adds a layer rather than replacing
+one.
+
 **On this page**
 
 * [What it catches, and what it costs](#what-it-catches-and-what-it-costs)
