@@ -1,69 +1,57 @@
 # The demonstration sets
 
-Two sets of **ten examples each**, one per role the text plays in the prompt. Ten, because the point
-is that you can read the whole thing in a minute and run it through the detector in one command —
-see which example fired, which rule fired on it, and what the wrapper did about it.
+Two sets of **ten examples**, one per role the text plays in the prompt. Ten, so you can read the
+whole set and run it through the detector in one command.
 
-They are a shop window, not a measure. Every example is picked so that it behaves: the infected ones
-fire, the clean ones stay quiet. Reading a detection rate off ten chosen examples would be reading
-the selection, so no rate is printed — each side names its own measuring set below, and the numbers
-taken on those live in the integration README next door.
+A shop window, not a measure: every example is picked so that it behaves. No detection rate is
+printed here — it would be a rate over ten chosen examples. Each side names its measuring set below.
 
-Neither set is drawn from a measuring corpus, for two reasons: a measuring stick whose rows are
-scattered across shop windows stops measuring, and picking the examples "where it fired" out of such
-a corpus quietly turns into fitting. These texts are ours, carry no personal data, and every name
-and address in them is invented.
+Neither set is drawn from a measuring corpus: rows scattered across shop windows stop measuring, and
+picking examples "where it fired" turns into fitting. The texts are ours, with no personal data and
+invented names.
 
 ## Material (`ipi`) — ten documents at ingest
 
-Measured elsewhere on **Quadrat-IPI** — 16 800 injections across three carriers, published at
+Measured on **Quadrat-IPI**: 16 800 injections across three carriers,
 [huggingface.co/datasets/mihailgribov/quadrat-ipi](https://huggingface.co/datasets/mihailgribov/quadrat-ipi).
-These ten are the window onto it, not a sample of it.
 
-Five infected, five clean. The carriers are the ones that really end up in a RAG index: a wiki page,
-a support ticket, meeting notes, a knowledge-base article, a web page. The five injections take one
-goal each — replace the answer, divert the task, get data out, approve something, reveal the
-instructions.
+Five infected, five clean. Carriers are what really ends up in a RAG index: a wiki page, a support
+ticket, meeting notes, a knowledge-base article, a web page. Each injection takes one goal: replace
+the answer, divert the task, get data out, approve something, reveal the instructions.
 
-The clean five are not filler. Each is built to sit next to an attack in wording while asking
-nothing of the model, and the last of them, `onboarding-analysts`, is the hardest: it is written as
-instructions, in the shape a README has — "IMPORTANT:", a command to run, a token to set, and the
-word "ignore" in a sentence addressed to a person.
+The clean five are not filler — each sits next to an attack in wording while asking nothing of the
+model. The hardest is `onboarding-analysts`: written as instructions, in the shape a README has
+("IMPORTANT:", a command, a token, the word "ignore"), all of it addressed to a person.
 
-`manifest.jsonl` holds the ground truth: where the payload sits (`inj_span`), what it is after
-(`action`), and what fired (`caught`, `threats`, filled in by a run rather than by hand).
+`manifest.jsonl` holds the ground truth: `inj_span`, `action`, and `caught`/`threats` filled in by a
+run rather than by hand.
 
     python3 build.py            # build, verify, write docs/ and manifest.jsonl
-    python3 show_material.py    # run all ten and show every one of them
+    python3 show_material.py    # run all ten, one row each
 
 ## The request (`dpi`) — ten exchanges ahead of the generator
 
-Measured elsewhere on held-out forum jailbreaks from
+Measured on held-out forum jailbreaks from
 [in-the-wild-jailbreak-prompts](https://huggingface.co/datasets/TrustAIRLab/in-the-wild-jailbreak-prompts)
 against real [WildChat](https://huggingface.co/datasets/allenai/WildChat-1M) turns. Quadrat does not
-apply on this side: it is a corpus of injections planted in documents, and nothing here is planted
-in anything.
+apply here: it plants injections in documents, and nothing on this side is planted in anything.
 
-Five attacks, five clean. The carrier is the exchange that goes into the model, so each example is a
-list of turns rather than one string — the decision is made for the whole exchange, and two of the
-attacks arrive in the third turn to show it.
+Five attacks, five clean. The carrier is the exchange, so each example is a list of turns; two
+attacks arrive in the third turn, because the decision is made for the whole exchange.
 
-The attacks are written by us; the live corpus of forum jailbreaks holds real turns written by other
-people and does not travel in a release. They take one shape each: cancel the rules outright, cancel
-them in a single turn, lock in an amoral persona, hide the rules inside a character, strip the
-disclaimers.
+The attacks are ours — the live corpus of forum jailbreaks holds other people's turns and does not
+travel in a release. One shape each: cancel the rules outright, cancel them in a single turn, lock
+in an amoral persona, hide the rules inside a character, strip the disclaimers.
 
-Each clean exchange is the benign twin of one of them: `policy-doc` cancels a company policy,
+Each clean exchange is the benign twin of one: `policy-doc` cancels a company policy,
 `roleplay-interview` asks for a role-play, `no-warnings-copy` asks for no disclaimers,
-`translate-attack` quotes "ignore all previous instructions" verbatim, and `docker-ignore` carries
-the same words in a sentence about build caches.
+`translate-attack` quotes "ignore all previous instructions", `docker-ignore` carries the same words
+about build caches.
 
-`dialog_manifest.jsonl` holds the ground truth: which turn attacks (`attack_turn`), whether the
-wrapper kept it out of the model (`caught`), and what fired (`threats`).
+`dialog_manifest.jsonl` holds the ground truth: `attack_turn`, `caught`, `threats`.
 
     python3 build_dialogs.py    # build, verify, write dialogues.jsonl and dialog_manifest.jsonl
     python3 show_request.py     # run all ten, plus the "zero disagreements" invariant
 
-That last invariant is the one that licenses everything else on this side: on every user turn the
-wrapper's finding must equal the bare detector's. If it does not, the wrapper is losing or adding
-text, and no number taken through it means anything.
+That invariant licenses the rest: on every user turn the wrapper's finding must equal the bare
+detector's. If it does not, the wrapper loses or adds text, and no number taken through it holds.

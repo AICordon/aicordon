@@ -1,25 +1,24 @@
-"""Acceptance measurement of the request side: how many attacks reach the model, and at what price.
+"""Acceptance measurement of the request side: how many attacks reach the model, at what price.
 
-WHAT IS MEASURED, AND WHY NOT RECALL. The detector's detection rate is already published
-(`docs/eval/direct-jailbreaks-2026-08.md`) and there is no point restating it here. An integration
-answers a different question: of the turns that entered the pipeline, how many REACHED THE
-GENERATOR, and how many real users were left without an answer. That is a property of the wrapper —
-which role is read, with which rule set, whether the exchange goes as a whole — not of the detector.
+WHAT IS MEASURED, AND WHY NOT RECALL. The detector's detection rate is published already
+(`docs/eval/direct-jailbreaks-2026-08.md`). An integration answers a different question: of the
+turns that entered the pipeline, how many REACHED THE GENERATOR, and how many real users were left
+without an answer. That is a property of the wrapper - which role is read, with which rule set,
+whether the exchange goes as a whole.
 
-THE THIRD NUMBER MATTERS MORE THAN THE FIRST TWO: the verdict of the pipeline and the verdict of the
-bare detector on the same string must differ ZERO times. A wrapper has no licence either to lose
-text (part of a message, a truncated tail) or to add its own. If that number is not zero, the rest
-must not be read.
+THE THIRD NUMBER OUTRANKS THE FIRST TWO: the pipeline and the bare detector must differ ZERO times
+on the same string. A wrapper may neither lose text (part of a message, a truncated tail) nor add
+its own. If that number is not zero, the rest must not be read.
 
-WHAT IS IN THE POOLS. The attacks are the held-out half of `jb_wild` + `jb_public` (the same
-selection as in exp45/tune: half by md5 of `id`, then near-duplicates removed by five-word shingles,
-Jaccard > 0.3) — public jailbreaks are variations on one DAN, and without that cleaning the figure
-is about 8 points too high. The clean turns are `wildchat_user` from the same held-out half.
+THE POOLS. Attacks: the held-out half of `jb_wild` + `jb_public`, selected as in exp45/tune - half
+by md5 of `id`, then near-duplicates dropped by five-word shingles, Jaccard > 0.3. Public jailbreaks
+are variations on one DAN, and without that cleaning the figure runs about 8 points high. Clean
+turns: `wildchat_user` from the same held-out half.
 
-THE CLEAN POOL IS NOT CLEAN, and no correction is applied here. WildChat carries no attack labels,
-and real jailbreaks sit inside the negative pool: in the published run, 41 of the 144 turns flagged
-by every detector turned out to be attacks. So "left without an answer" below is an UPPER BOUND on
-the price, not a false-positive rate; the true one is lower.
+THE CLEAN POOL IS NOT CLEAN, and no correction is applied. WildChat carries no attack labels, and
+real jailbreaks sit inside the negative pool: in the published run, 41 of the 144 turns flagged by
+every detector were attacks. So "left without an answer" below is an UPPER BOUND on the price, not a
+false-positive rate.
 
     python eval/measure_dialog.py --turns 20000
 """

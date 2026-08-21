@@ -324,11 +324,10 @@ contract — modes at `load()`, severity, thread safety, streaming, async, JSON:
 
 ## In a framework
 
-Two places in a pipeline hold text a model is about to read, and each has its own rule set: the
-**material** on the way into the index, and the **request** on the way into the generator. The
-policy for both — which rules, what to do with a finding, what to write in the metadata — is part of
-the package (`aicordon.guard`), so a wrapper for a framework is a translation of its types and
-nothing more.
+Two places in a pipeline hold text the model is about to read: **material** on the way into the
+index, **the request** on the way into the generator. Each has its own rule set. The policy for both
+ships with the package (`aicordon.guard`), so a framework wrapper translates that framework's types
+and nothing more.
 
 ```console
 $ pip install aicordon-haystack
@@ -339,7 +338,7 @@ from haystack_integrations.components.preprocessors.aicordon import PromptInject
 from haystack_integrations.components.validators.aicordon import PromptInjectionGuard
 ```
 
-What each component connects to, and what a pipeline delivers with it and without:
+Where each component connects, and what a pipeline delivers with it and without:
 [integrations/haystack](https://github.com/AICordon/aicordon/blob/main/integrations/haystack/README.md).
 
 ## The base and its version

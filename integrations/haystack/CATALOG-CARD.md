@@ -10,14 +10,15 @@ README:
     Evaluation Framework | Custom Component | Tool Integration | Other
   - one card per PACKAGE, not per component: `aicordon-haystack` ships two components under one card.
 
-SUBMIT ONLY AFTER `aicordon-haystack` IS ON PyPI: at least one of `pypi`/`repo` must resolve for a
-merge, and a card pointing at a package that is not there yet is a rejection asking to happen. The
-order is: merge the integration branch into `main` and push (the `repo` link and the README links
-inside this card resolve off `main`), publish `aicordon` >= 1.1.0, publish `aicordon-haystack`, then
-open this PR.
+SUBMIT ONLY AFTER `aicordon-haystack` IS ON PyPI. Order:
+  1. merge the integration branch into `main` and push - the `repo` link and the README links in
+     this card resolve off `main`;
+  2. publish `aicordon` >= 1.1.0;
+  3. publish `aicordon-haystack`;
+  4. open this PR.
 
-`logo` is optional and is deliberately not set: a logo lives in the catalogue repository, not ours,
-and adding one is a separate PR that can follow at any time.
+`logo` is optional and deliberately unset: it lives in the catalogue repository, so it is a separate
+PR whenever we want one.
 -->
 ---
 layout: integration

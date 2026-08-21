@@ -21,9 +21,8 @@ classifiers = [
     "Topic :: Security",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-# `aicordon>=1.1.0`, not `>=1.0.0`: the policy this wrapper imports (`aicordon.guard`) was folded
-# into the detector in 1.1.0. Against 1.0.0 the install resolves and the import fails — the failure
-# lands on the user, at the first line of their pipeline.
+# `>=1.1.0`, not `>=1.0.0`: `aicordon.guard` was folded into the detector in 1.1.0. Against 1.0.0
+# the install resolves and the import fails, on the user's first pipeline line.
 dependencies = ["haystack-ai>=3.0.0", "aicordon>=1.1.0"]
 
 [project.urls]

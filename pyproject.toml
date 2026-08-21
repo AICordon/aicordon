@@ -52,8 +52,8 @@ exclude = ["/src/aicordon/intent"]
 # The same list as for the wheel: `exclude` under the `wheel` target does not apply to the source
 # archive, and `intent` was travelling in it unnoticed — while the decision was not to ship it.
 #
-# `/integrations` is excluded for the same reason, one step further out: the framework wrappers are
-# SEPARATE distributions with their own version and their own `pyproject.toml`. Inside this archive
-# they were 41 files against the product's 29 — and a source tree holding a second, buildable
-# project is a trap: `pip install .` in the wrong directory installs the wrong thing.
+# `/integrations` goes for the same reason: the wrappers are SEPARATE distributions with their own
+# version and `pyproject.toml` — 41 files against the product's 29, and a source tree holding a
+# second buildable project is a trap (`pip install .` in the wrong directory installs the wrong
+# thing).
 exclude = ["/src/aicordon/intent", "/integrations"]

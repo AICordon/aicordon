@@ -1,13 +1,11 @@
-"""Run the ten demonstration DOCUMENTS through the detector and show every one of them.
+"""Run the ten demonstration DOCUMENTS through the detector, one row each.
 
-Ten is the whole point. A window you can read in a minute says what a corpus of five hundred cannot:
-which document fired, which rule fired on it, and how much of it the redaction took away. Nothing is
-averaged here, because an average over ten examples is a number pretending to be a measurement.
+Ten is the point: you can read the whole set, then see which document fired, which rule fired on it,
+and how much redaction took away. Nothing is averaged — an average over ten chosen examples is not a
+measurement.
 
-The measured numbers are somewhere else and are meant to stay there: Quadrat-IPI, 16 800 injections
-across three carriers, https://huggingface.co/datasets/mihailgribov/quadrat-ipi. This set is picked
-so that every example behaves — that is what a shop window is, and reading recall off it would be
-reading the selection.
+Measured numbers live on Quadrat-IPI, 16 800 injections across three carriers:
+https://huggingface.co/datasets/mihailgribov/quadrat-ipi
 
     python3 show_material.py
 """

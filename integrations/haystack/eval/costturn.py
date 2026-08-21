@@ -1,29 +1,25 @@
-"""What checking ONE turn costs — the number a README reader scales to their own traffic.
+"""What checking ONE turn costs - the number a README reader scales to their own traffic.
 
-Why a separate measurement rather than the difference between the two arms in `measure_dialog.py`.
-The pool there is mixed: 537 forum jailbreaks of several thousand characters each, next to twenty
-thousand live turns. A mean over that mixture is a property of the measurement's composition rather
-than of traffic, and it will not reproduce on anybody else's. Here the pool is live WildChat turns
-only, and the length the cost depends on is shown alongside.
+Why not the difference between the two arms in `measure_dialog.py`: the pool there is mixed, 537
+forum jailbreaks of several thousand characters against twenty thousand live turns. A mean over that
+mixture describes the measurement, not traffic, and will not reproduce elsewhere. Here the pool is
+live WildChat turns only, with the length the cost depends on shown alongside.
 
-FOUR LEVELS, SO IT IS VISIBLE WHO EACH SHARE GOES TO:
+FOUR LEVELS, TO SEE WHERE EACH SHARE GOES:
 
-    detector    bare `picket.check` — the cost of the check itself; this is Picket
-    policy      + the role map and the verdict for the exchange (`DialogueGuard`) — our core
-    component   + `run()`: reading the message parts, copies, metadata — our wrapper
-    pipeline    + `Pipeline.run()` — Haystack's dispatcher, somebody else's code
+    detector    bare `picket.check` - the check itself; this is Picket
+    policy      + the role map and the verdict for the exchange (`DialogueGuard`) - our core
+    component   + `run()`: reading message parts, copies, metadata - our wrapper
+    pipeline    + `Pipeline.run()` - Haystack's dispatcher, somebody else's code
 
-The messages are built BEFORE the timer starts, not inside it: in a real pipeline a prompt builder
-assembles them, and putting that into the cost of the check would be claiming somebody else's
-expense as our own. `pipeline` is on a line of its own for the same reason: it is the host's
-per-step cost, every component pays it, and it is ours only in the sense that we asked for one more
-step.
+Messages are built BEFORE the timer starts: in a real pipeline a prompt builder assembles them, and
+timing that would claim somebody else's expense as ours. `pipeline` is a line of its own for the
+same reason - it is the host's per-step cost, paid by every component.
 
-THE PROCEDURE is the one from `experiments/40_prefilter/`: R repeats of the whole pool, the MEDIAN
-of the repeats taken per turn (which removes scheduler noise), and the distribution computed over
-turns after that. The uncertainty on the headline number is the standard deviation of the per-repeat
-means. Cost figures drift with machine load: only figures taken by one procedure in one run may be
-compared.
+PROCEDURE, as in `experiments/40_prefilter/`: R repeats of the whole pool, the MEDIAN of the repeats
+per turn (removes scheduler noise), then the distribution over turns. The uncertainty on the
+headline number is the standard deviation of the per-repeat means. Cost drifts with machine load:
+compare only figures from one procedure in one run.
 
     python eval/costturn.py --turns 3000 --repeat 5
 """

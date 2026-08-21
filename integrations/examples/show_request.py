@@ -1,16 +1,14 @@
-"""Run the ten demonstration EXCHANGES through the detector and show every one of them.
+"""Run the ten demonstration EXCHANGES through the detector, one row each.
 
 The pair to `show_material.py`: that one reads material (`ipi`), this one the request (`dpi`). The
-carrier here is not a document but the message list on its way into the model, so what is shown per
-row is whether the exchange would have been sent at all.
+carrier is the message list on its way into the model, so each row says whether the exchange would
+have been sent at all.
 
-Nothing is cut on this side and nothing is averaged. What IS checked, on every user turn, is the
-invariant that licenses the rest: the wrapper's finding must equal the bare detector's on the same
-string. If that column is not zero, the wrapper is losing or adding text and the demonstration says
-nothing about the detector.
+Nothing is cut here and nothing is averaged. What IS checked, on every user turn: the wrapper's
+finding must equal the bare detector's. A non-zero column there means the wrapper loses or adds
+text, and the rest of the demonstration says nothing.
 
-The measured numbers live elsewhere: held-out forum jailbreaks against live WildChat turns, in the
-integration README. This set is picked so that every example behaves.
+Measured numbers: held-out forum jailbreaks against live WildChat turns, in the integration README.
 
     python3 show_request.py
 """

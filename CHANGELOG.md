@@ -2,40 +2,38 @@
 
 ## 1.1.0 — 2026-08-21
 
-### The policy that wraps the detector now ships with it: `aicordon.guard`
+### The policy now ships with the detector: `aicordon.guard`
 
-Putting Picket into somebody's pipeline takes more than calling `check()`. Something has to decide
-which rule set a string is read with, what to do when a rule fires — annotate it, cut it, drop the
-document, refuse the exchange — and where the verdict is written down so the next stage can see it.
-That decision is the same in every framework, so it belongs next to the detector rather than inside
-each wrapper.
+Putting Picket into a pipeline takes more than calling `check()`. Something has to pick the rule set,
+decide what a finding costs — annotate, cut, drop the document, refuse the exchange — and write the
+verdict where the next stage can see it. That is the same in every framework, so it lives next to the
+detector instead of inside each wrapper.
 
 ```python
 from aicordon.guard import InjectionGuard, DialogueGuard
 ```
 
-* `InjectionGuard` reads **material** with the `ipi` rules: six modes (`annotate`, `blank`, `mask`,
-  `redact`, `drop`, `fail`), a cut that takes the whole line holding the span rather than the
-  matched characters alone, and metadata written on every document it read — including the ones it
-  found nothing in, because "read, clean" and "not read" are different facts.
-* `DialogueGuard` and `TurnGuard` read **the request** with the `dpi` rules: a role map (`user` by
-  default), and a verdict for the whole exchange rather than for one message — dropping the flagged
-  turn and calling the model with the rest is not a defence, it answers the message before it.
+* `InjectionGuard` reads **material** with the `ipi` rules. Six modes (`annotate`, `blank`, `mask`,
+  `redact`, `drop`, `fail`); the cut takes the whole line holding the span, not the matched
+  characters. Metadata is written on every document it read, including the clean ones: "read, clean"
+  and "not read" are different facts.
+* `DialogueGuard` and `TurnGuard` read **the request** with the `dpi` rules. A role map (`user` by
+  default), and one verdict for the whole exchange: dropping the flagged turn and calling the model
+  with the rest is no defence, it answers the message before it.
 
-Which side applies follows from the role the text plays in the prompt, not from who fetched it. Your
-code always knows the difference, because it puts material and request in different places when it
-assembles the call.
+Which side applies follows from the role of the text, not from who fetched it. Your code knows the
+difference — it puts material and request in different places when it assembles the call.
 
-**The request side never edits a turn**, and asking it to (`redact`, `blank`, `mask`) raises instead
-of quietly obliging: cutting is measured on documents where the injection is spliced in as its own
-line and the span is known, while a typed jailbreak is not spliced into anything — it *is* the turn.
+**The request side never edits a turn.** Asking it to (`redact`, `blank`, `mask`) raises. Cutting is
+measured on documents, where the injection is a spliced-in line with a known span; a typed jailbreak
+is not spliced into anything, it *is* the turn.
 
-The module brings no dependencies of its own. Installing the package still installs nothing else.
+The module brings no dependencies. Installing the package still installs nothing else.
 
 ### The detector is unchanged
 
-1.1.0 adds a module and touches no rule: same base `engine_v3_20260817_b3.bin`, same 380 rules, same
-verdicts in both modes. Code that does not import `aicordon.guard` sees no difference at all.
+Same base `engine_v3_20260817_b3.bin`, same 380 rules, same verdicts in both modes. Code that does
+not import `aicordon.guard` sees no difference.
 
 ## 1.0.0 — 2026-08-17
 
