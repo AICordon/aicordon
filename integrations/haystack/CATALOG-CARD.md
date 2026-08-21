@@ -25,7 +25,7 @@ layout: integration
 name: AI Cordon Picket
 description: Detect prompt injection in what an LLM is given - documents at ingest and the turn it answers - with a local rule base, no GPU or network.
 authors:
-    - name: Mike Gribov
+    - name: Mikhail Gribov
       socials:
         github: mihail-gribov
 pypi: https://pypi.org/project/aicordon-haystack
