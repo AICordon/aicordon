@@ -1,4 +1,4 @@
-# AI Cordon Picket 1.0.0
+# AI Cordon Picket 1.1.0
 
 slice `all` · 16800 unique injections / 63000 clean · dataset `3ee970d160449aae`
 
@@ -25,28 +25,28 @@ slice `all` · 16800 unique injections / 63000 clean · dataset `3ee970d160449aa
 
 The same grid per carrier, then pooled. A dot is a pair the grid does not admit.
 
-![email: lever by objective](figures/picket-1.0.0-20260818-023355-cells-email.svg)
+![email: lever by objective](figures/picket-1.1.0-20260821-215108-cells-email.svg)
 
-![doc: lever by objective](figures/picket-1.0.0-20260818-023355-cells-doc.svg)
+![doc: lever by objective](figures/picket-1.1.0-20260821-215108-cells-doc.svg)
 
-![web: lever by objective](figures/picket-1.0.0-20260818-023355-cells-web.svg)
+![web: lever by objective](figures/picket-1.1.0-20260821-215108-cells-web.svg)
 
-![all carriers: lever by objective](figures/picket-1.0.0-20260818-023355-cells-all.svg)
+![all carriers: lever by objective](figures/picket-1.1.0-20260821-215108-cells-all.svg)
 
 
 ## AI Cordon Picket against the others, at one false-positive rate
 
 Every detector here was placed at **0.098%** false positives — the rate `picket` its own verdict produces. The guests were re-thresholded to it from their saved scores; `picket` itself was not moved. Binary detectors are absent and cannot be added: two systems at two self-chosen rates are two measurements, and no threshold makes them one.
 
-![recall at a matched false-positive rate](figures/picket-1.0.0-20260818-023355-peers.svg)
+![recall at a matched false-positive rate](figures/picket-1.1.0-20260821-215108-peers.svg)
 
 ### Recall by lever, at the same rate
 
-![Recall by lever](figures/picket-1.0.0-20260818-023355-peers-family.svg)
+![Recall by lever](figures/picket-1.1.0-20260821-215108-peers-family.svg)
 
 ### Recall by objective, at the same rate
 
-![Recall by objective](figures/picket-1.0.0-20260818-023355-peers-action.svg)
+![Recall by objective](figures/picket-1.1.0-20260821-215108-peers-action.svg)
 
 Measured on this build but not in the comparison: `floor` — binary: its own point, it does not move to another's; `bordair-gate` — binary: its own point, it does not move to another's.
 
