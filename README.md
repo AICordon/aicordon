@@ -6,17 +6,19 @@
 [![Dependencies](https://img.shields.io/badge/dependencies-0-brightgreen.svg)](https://github.com/AICordon/aicordon/blob/main/pyproject.toml)
 [![Network calls](https://img.shields.io/badge/network%20calls-none-brightgreen.svg)](#where-it-belongs-and-why-nothing-leaves-the-process)
 
-**AI Cordon Picket** — Picket for short — is a local **signature detector** for prompt injection,
-at **both ends of an agent's input**: an instruction planted in the material the model is working
-on, and a jailbreak inside the request itself.
+**Catch obvious prompt injections before they reach your model.** Locally, in milliseconds, with no
+model and no network.
 
-It checks **100–200 documents a second on one CPU core** and raises **about one false alarm per
-thousand** clean texts. The two numbers matter together: fast enough to check every document as it
-arrives — rather than a sample of them, or a queue worked through later — and quiet enough that an
-alarm stays rare enough to act on.
+Picket is the open-source **signature layer** of AI Cordon. It works at **both ends of an agent's
+input**: an instruction planted in the material the model works on, and a jailbreak in the request
+itself.
 
-It is a rule — it reads the SURFACE of the text and matches signatures. No model, no network, no
-dependencies, no GPU, nothing to wait on. This package ships it.
+**100–200 documents a second on one CPU core**, at **about one false alarm per thousand** clean
+texts. The two numbers work together: fast enough to check everything as it arrives rather than a
+sample or a queue worked through later, quiet enough that an alarm is worth acting on.
+
+It is a rule: it reads the SURFACE of the text and matches signatures. No model, no network, no
+dependencies, no GPU, nothing to wait on.
 
 **On this page**
 
