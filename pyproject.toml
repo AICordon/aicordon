@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "aicordon"
 version = "1.1.0"
-description = "Catch obvious prompt injections before they reach your model: scans untrusted text locally, near-zero false positives, no model inference"
+description = "Local prompt-injection scanner for untrusted text: 100-200 documents/s on one CPU core, one false alarm per thousand, no model"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{ name = "Mikhail Gribov", email = "mihail.gribov.rs@gmail.com" }]
