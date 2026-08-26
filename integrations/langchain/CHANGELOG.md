@@ -1,0 +1,29 @@
+# Changelog
+
+## 0.1.0 — 2026-08-26
+
+First release. AI Cordon Picket for LangChain, in four places a string reaches a model.
+
+| entry point | host contract | reads | with |
+|---|---|---|---|
+| `PromptInjectionFilter` | `BaseDocumentTransformer` | documents at ingest | `ipi` |
+| `ToolOutputFilter` | `AgentMiddleware.wrap_tool_call` | what a tool handed back | `ipi` |
+| `PromptInjectionGuard` | `AgentMiddleware.wrap_model_call` | the turn an agent will answer | `dpi` |
+| `PromptInjectionValidator` | `Runnable` | the request in a chain | `dpi` |
+
+The policy is `aicordon.guard`, shipped inside the detector: modes, cut boundaries and metadata are
+the same here as in `aicordon-haystack`, and the acceptance measurements reproduce that package's
+numbers on the same corpora.
+
+**The tool result is the surface a RAG pipeline has no equivalent of.** A page a tool fetches enters
+the conversation with nothing between it and the model, and it is material by any reading — so it is
+read with the `ipi` rules at the point the tool returns, where cutting is what the policy was
+measured on. `drop` there withholds the text and keeps the message: every tool call must be answered
+by a result carrying its id.
+
+**Nothing rewrites a request.** `PromptInjectionGuard` and `PromptInjectionValidator` take
+`annotate`, `drop` and `fail` only, and a chain link takes no `drop` at all — a `Runnable` returns a
+value and the next link is the model, so it raises or marks and lets a `RunnableBranch` decide.
+
+Against `langchain-core` 1.6, `langchain` 1.3 and `langgraph` 1.2. The contract each entry point
+stands on, and the four traps behind these choices, are in `NOTES.md`.

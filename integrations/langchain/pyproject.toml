@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "aicordon-langchain"
+version = "0.1.0"
+description = "Check what an LLM is given for prompt injection: material at ingest, tool output, and the turn it answers"
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+# The text travels WITH the wheel. `license = "Apache-2.0"` is only a label in the metadata, and a
+# wheel that names a licence it does not carry makes the reader go and look for it.
+license-files = ["LICENSE"]
+authors = [{ name = "Mikhail Gribov", email = "mihail.gribov.rs@gmail.com" }]
+keywords = ["langchain", "prompt-injection", "jailbreak", "rag", "agents", "llm-security",
+            "guardrails"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+# Two host requirements, because the package covers two surfaces. `langchain-core` alone carries
+# documents and runnables; the agent middleware lives in `langchain` 1.x, which is where
+# `AgentMiddleware` was introduced. `aicordon>=1.1.0`: `aicordon.guard` was folded into the detector
+# in 1.1.0, and against 1.0.0 the install resolves while the import fails on the user's first line.
+dependencies = ["langchain-core>=1.0.0", "langchain>=1.0.0", "aicordon>=1.1.0"]
+
+[project.urls]
+Homepage = "https://github.com/AICordon/aicordon/blob/main/integrations/langchain/README.md"
+Repository = "https://github.com/AICordon/aicordon"
+Issues = "https://github.com/AICordon/aicordon/issues"
+Changelog = "https://github.com/AICordon/aicordon/blob/main/integrations/langchain/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+# Our own name, not `langchain_*`. The `langchain-` prefix on PyPI reads as a package the framework
+# publishes, and this one is published by us; the host has no namespace requirement of the kind
+# Haystack has, so nothing is bought by claiming it.
+packages = ["src/aicordon_langchain"]
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=1.0"]
+
+[tool.pytest.ini_options]
+# `conftest.py` is imported by name from the test modules, so the directory has to be on the path.
+pythonpath = ["tests"]
+asyncio_mode = "strict"

@@ -63,13 +63,12 @@ could change.
 3. **Logging is not a mode.** It is wanted under `drop` as much as under `annotate`, so it goes
    through `haystack.logging` at `warning` level rather than being a value of the parameter.
 
-## What carries over to LlamaIndex or LangChain
+## What carries over to another framework
 
 The policy (`aicordon.guard`) carries over as it is — modes, cut boundaries, metadata. A wrapper is
-the host's document type translated into a string and back, plus the host's contract: for LlamaIndex
-`TransformComponent.__call__(nodes)`, for LangChain `BaseDocumentTransformer.transform_documents`.
-Check their serialisation separately — Haystack is not the only framework that loses a mode without
-a word.
+the host's document type translated into a string and back, plus whatever contract the host imposes
+on a pipeline step. Check the host's serialisation separately — Haystack is not the only framework
+that loses a mode without a word.
 
 ## The request side: contract and traps (2026-08-18)
 

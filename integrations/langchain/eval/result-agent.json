@@ -1,0 +1,12 @@
+{
+ "attacks": 537,
+ "clean": 20000,
+ "attacks_reached_before": 537,
+ "attacks_reached_after": 350,
+ "clean_reached_before": 20000,
+ "clean_reached_after": 19986,
+ "mismatch_with_bare_detector": 0,
+ "seconds_baseline": 11.8,
+ "seconds_guarded": 65.0,
+ "base": "20260817"
+}

@@ -2,11 +2,14 @@
 
 Wrappers that put Picket inside somebody else's pipeline. **Two** places to sit, one per role the
 text plays in the prompt; since 1.0.0 Picket carries a rule set for each, and they do not overlap.
+How many entry points a framework has follows from its own shape — a RAG pipeline offers two, an
+agent library four — but every one of them is one of these two sides.
 
 **Material** (`ipi`) — what the model works on: a document, a retrieved passage, a tool result. We
 sit at **ingest**, before the chunker and the embedder, so the injection is cut once and never
 reaches the store. Checking after chunking is late and dearer: the cut would run per chunk, with the
-boundaries stitched back together.
+boundaries stitched back together. In an agent the ingest point of a tool result is the moment the
+tool returns — same rule, same modes, a different doorway.
 
 **The request** (`dpi`) — the turn the model answers. We sit **next to the generator**, on the
 message list about to enter it. Nothing is cut here: cutting is fitted to an injection spliced into
@@ -26,31 +29,14 @@ aicordon/guard/    the policy: what to read, with which rule set, what to do wit
   dialogue.py        request: the role map, three modes, one verdict for the exchange
 integrations/
   haystack/        two wrappers against the Haystack contract (@component)
-  ...              llamaindex/, langchain/, crewai/ to follow — one wrapper each
+  langchain/       four against LangChain: a document transformer, two agent middlewares, a runnable
 ```
 
 **Everything of substance lives in `aicordon.guard`**, inside the detector distribution: it depends
 on nothing but the detector, and a second published package for two hundred lines of policy costs
 maintenance and buys nothing. Per framework that leaves the translation of its types into a string
-and back — fifty-odd lines. Written inside a Haystack component instead, the same logic would be
-rewritten for LlamaIndex.
-
-## The order of frameworks
-
-Haystack first: its indexing pipeline is an explicit object wired by name, so our check goes in as
-its own `pipeline.connect(...)` line and shows up in the graph, and the way into their catalogue is
-one PR to `deepset-ai/haystack-integrations`. The smaller ecosystem is the point: a mistake costs
-less, and the core carries over.
-
-For LlamaIndex the material slot is `IngestionPipeline(transformations=[...])` ahead of the
-splitter; for LangChain, `BaseDocumentTransformer`. CrewAI has no slot at all — chunking sits inside
-the knowledge source, and intercepting means subclassing `BaseKnowledgeSource` — so it goes last.
-
-Their request slot is **not yet established from the sources**: for LangChain the candidate is a
-`Runnable` link ahead of the model in LCEL, for LlamaIndex the chat engine's wrapping. Establish it
-as it was for Haystack — from a clone, with the contract and the traps written into that framework's
-`NOTES.md`. Check the "to the model / not to the model" branch separately in each: a component that
-returns an empty list instead of taking the branch calls the model with nothing.
+and back — fifty-odd lines. Written inside a framework component instead, the same logic would be
+rewritten for the next one.
 
 ## How we show it works
 
@@ -65,4 +51,17 @@ that outranks both: **the pipeline and the bare detector must differ zero times 
 A wrapper may neither lose text nor add its own; if that number is not zero, the rest must not be
 read.
 
-The measurement is part of releasing the package, as it is for Picket itself.
+The measurement is part of releasing the package, as it is for Picket itself. Two wrappers over the
+same policy on the same corpora must agree, and they do: the Haystack pipeline and the LangChain
+agent both leave 350 of 537 held-out attacks reaching the model and cost 14 of 20 000 real turns
+their answer.
+
+## Establishing a framework's contract
+
+The traps are never in the check — they are in the host, and each one found so far was silent. Before
+writing a wrapper, clone the framework and read the sources for: how a step declines to call the
+model (an absent key in Haystack, a skipped handler in LangChain, and in both a way of *appearing*
+to decline that quietly does not); how a message carries its text when it is not a plain string; how
+an edited message is put back without being duplicated; and whether the sync and async halves of a
+hook are interchangeable. Write what you find into that framework's `NOTES.md` with the control that
+proves it, and cover it with a test.

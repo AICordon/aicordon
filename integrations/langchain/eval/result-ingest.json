@@ -1,0 +1,13 @@
+{
+ "mode": "redact",
+ "n_injected": 2000,
+ "n_clean": 2000,
+ "payload_intact_before": 2000,
+ "payload_intact_after": 1703,
+ "payload_gone_after": 269,
+ "clean_dropped": 0,
+ "clean_trimmed": 1,
+ "seconds_baseline": 0.0,
+ "seconds_guarded": 44.7,
+ "base": "20260817"
+}
