@@ -20,9 +20,17 @@ under `python: middleware:`:
   - name: AI Cordon Picket
     pypi: aicordon-langchain
     docs_url: https://github.com/AICordon/aicordon/blob/main/integrations/langchain/README.md
-    available: "Prompt-injection checks on both sides of the prompt: the turn an agent is about to answer, and the material it is given — tool output and documents at ingest. Rules, not a model: no GPU, no network, no key."
+    available: "Deterministic, rule-based prompt-injection checks on both sides of the prompt: the turn an agent is about to answer, and the material it is given — tool output and documents at ingest. No model, no GPU, no network, no key."
     source: "[`AICordon/aicordon`](https://github.com/AICordon/aicordon/tree/main/integrations/langchain)"
 ```
+
+**"Deterministic, rule-based" is doing work, and it is the only place we can do it.** Their
+guardrails guide splits the field in two — *deterministic*, "rule-based logic like regex patterns,
+keyword matching, or explicit checks", against *model-based*, "LLMs or classifiers … slower and more
+expensive" — but that split lives in a teaching page, not in the catalogue. The listing is ONE table
+per component, four columns, sorted by monthly downloads; there is no field to declare which kind a
+detector is and no second shelf to stand on. So the words in `available` are the whole of it, and
+they borrow their vocabulary rather than inventing ours.
 
 `docs_url` follows their stated priority — partner docs, then the GitHub repo, then PyPI. Ours
 points at the package README, which is where the usage documentation lives; their `<Info>` block
