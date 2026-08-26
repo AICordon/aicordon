@@ -32,8 +32,9 @@ from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
 from aicordon.guard import DEFAULT_ROLES, DialogueGuard, InjectionGuard
-from langchain.agents.middleware import AgentMiddleware
+from langchain.agents.middleware import AgentMiddleware, ExtendedModelResponse, ModelResponse
 from langchain_core.messages import AIMessage, ToolMessage
+from langgraph.types import Command
 
 from ._common import ROLE_OF, message_text
 
@@ -110,14 +111,29 @@ class PromptInjectionGuard(AgentMiddleware):
                 meta[str(messages[index].id)] = found
         return verdict, meta
 
-    def _refuse(self, verdict: Any, meta: dict[str, Any]) -> AIMessage:
+    def _refuse(self, verdict: Any, meta: dict[str, Any]) -> ExtendedModelResponse:
+        """The answer the caller gets instead of the model's, and an explicit end to the run.
+
+        NOT a bare `AIMessage`. Skipping the model call is enough to end an ordinary agent, whose
+        loop stops at a message carrying no tool calls — but an agent built with `response_format`
+        has a different exit: the model node runs again unless a structured response appeared this
+        turn, on the reasoning that the model may simply have failed to produce one. A refusal never
+        will, so that agent spins for ever, quietly, at the speed of the model. Measured on
+        langchain 1.3.17: the same refusal that ends a plain agent in under a second did not return
+        in four minutes.
+
+        `jump_to` in a state update is read by both edges out of the model node before anything
+        else, so this ends the run in every shape of agent — plain, with tools, with a schema.
+        """
         logger.warning("prompt injection in the request: %s, action %s",
                        ", ".join(verdict.threats), self.mode)
-        return AIMessage(content=self.refusal, response_metadata={
+        message = AIMessage(content=self.refusal, response_metadata={
             f"{self.meta_prefix}_blocked": True,
             f"{self.meta_prefix}_threats": list(verdict.threats),
             f"{self.meta_prefix}_messages": meta,
         })
+        return ExtendedModelResponse(model_response=ModelResponse(result=[message]),
+                                     command=Command(update={"jump_to": "end"}))
 
     def _mark(self, response: Any, verdict: Any, meta: dict[str, Any]) -> Any:
         """Record what was found on the answer the model gave.

@@ -8,7 +8,7 @@ only what a source tree that was never installed can fall back on.
 """
 from __future__ import annotations
 
-_FALLBACK = "1.1.0"
+_FALLBACK = "1.1.1"
 
 
 def _version() -> str:

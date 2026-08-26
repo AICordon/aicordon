@@ -106,6 +106,33 @@ def test_the_opening_turn_is_read_once_however_long_the_loop_runs() -> None:
     assert read == ["read", "skipped", "skipped"]
 
 
+def test_a_refusal_ends_an_agent_asked_for_structured_output(attack: str) -> None:
+    """The exit condition of such an agent is a structured response, not a message without tool
+    calls: without an explicit end it runs the model again, for ever, because a refusal will never
+    produce one. Four minutes and still going, before the fix."""
+    from pydantic import BaseModel
+
+    class Answer(BaseModel):
+        city: str
+
+    model = fake_model(AIMessage(content="should never be produced"))
+    out = create_agent(model=model, tools=[], middleware=[PromptInjectionGuard()],
+                       response_format=Answer).invoke(
+        {"messages": [HumanMessage(content=attack)]})
+    assert model.calls == []
+    assert out["messages"][-1].response_metadata["picket_blocked"] is True
+    assert out.get("structured_response") is None
+
+
+def test_a_refusal_ends_an_agent_that_has_tools(attack: str) -> None:
+    """The same, with the other edge out of the model node."""
+    model = fake_model(AIMessage(content="should never be produced"))
+    out = create_agent(model=model, tools=[fetch], middleware=[PromptInjectionGuard()]).invoke(
+        {"messages": [HumanMessage(content=attack)]})
+    assert model.calls == []
+    assert out["messages"][-1].response_metadata["picket_blocked"] is True
+
+
 @pytest.mark.asyncio
 async def test_the_guard_holds_under_ainvoke(attack: str) -> None:
     """A middleware with only the sync hook raises `NotImplementedError` here for tool calls, and

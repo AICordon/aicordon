@@ -80,7 +80,8 @@ pipe.connect("ipi_filter.rejected", "quarantine.documents")   # optional; nothin
 The component sits **before the splitter**: a cut here takes the injection out of the chunks, the
 embeddings and the store at once, with no offsets to reconcile across chunk boundaries. Modes:
 `annotate`, `blank` (keeps the length), `mask`, `redact` (default), `drop`, `fail`. The cut takes
-the whole line holding the span, not the matched characters alone.
+the whole utterance the span sits in — the sentence, across the lines a wrapper
+broke it over — and not the matched characters alone.
 
 ## The turn the model answers
 

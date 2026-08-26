@@ -7,8 +7,8 @@
  "payload_gone_after": 131,
  "clean_dropped": 0,
  "clean_trimmed": 0,
- "seconds_baseline": 0.4,
- "seconds_guarded": 17.0,
+ "seconds_baseline": 0.5,
+ "seconds_guarded": 21.8,
  "rows": [
   {
    "id": "pos-000000",

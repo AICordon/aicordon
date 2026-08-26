@@ -7,7 +7,7 @@
  "payload_gone_after": 131,
  "clean_withheld": 0,
  "clean_trimmed": 0,
- "seconds_baseline": 8.8,
- "seconds_guarded": 36.8,
+ "seconds_baseline": 9.5,
+ "seconds_guarded": 36.6,
  "base": "20260817"
 }

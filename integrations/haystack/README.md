@@ -56,8 +56,10 @@ embeddings and the store at once, with no offsets to reconcile across chunk boun
 `blank` is for pipelines that carry offsets, page maps or diffs downstream and cannot have a
 document change length under them.
 
-The cut takes **the line holding the span**, or the sentence when that line runs past 1500
-characters: the span points at the injection, but what must leave the index is the whole utterance.
+The cut takes **the whole utterance the span sits in** — the sentence, across the lines a
+wrapper broke it over: the span points at the injection, but what must leave the index is
+everything it was saying. A short line that ends without punctuation is a bullet or a table
+row and is left alone, so a list is not eaten item by item.
 Measured on 1200 documents: the payload is gone entirely in 91% of catches, at a median 11.6% of the
 document removed.
 
