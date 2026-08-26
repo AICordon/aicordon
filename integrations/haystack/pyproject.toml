@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aicordon-haystack"
-version = "0.1.0"
+version = "0.1.1"
 description = "Check what an LLM is given for prompt injection: material at ingest, and the turn it answers"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -21,9 +21,10 @@ classifiers = [
     "Topic :: Security",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-# `>=1.1.0`, not `>=1.0.0`: `aicordon.guard` was folded into the detector in 1.1.0. Against 1.0.0
-# the install resolves and the import fails, on the user's first pipeline line.
-dependencies = ["haystack-ai>=3.0.0", "aicordon>=1.1.0"]
+# `>=1.1.1`, not `>=1.1.0`: `aicordon.guard` was folded into the detector in 1.1.0, and 1.1.1 fixed
+# what the cut removes — an injection wrapped across lines lost only the line the span sat on.
+# Against an older one the install resolves and the redaction quietly leaves half the instruction.
+dependencies = ["haystack-ai>=3.0.0", "aicordon>=1.1.1"]
 
 [project.urls]
 Homepage = "https://github.com/AICordon/aicordon/blob/main/integrations/haystack/README.md"
