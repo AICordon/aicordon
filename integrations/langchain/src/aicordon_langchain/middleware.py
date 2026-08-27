@@ -33,7 +33,7 @@ from typing import TYPE_CHECKING, Any
 
 from aicordon.guard import DEFAULT_ROLES, DialogueGuard, InjectionGuard
 from langchain.agents.middleware import AgentMiddleware, ExtendedModelResponse, ModelResponse
-from langchain_core.messages import AIMessage, ToolMessage
+from langchain_core.messages import AIMessage, RemoveMessage, ToolMessage
 from langgraph.types import Command
 
 from ._common import ROLE_OF, message_text
@@ -69,25 +69,31 @@ class PromptInjectionGuard(AgentMiddleware):
         on documents. `ToolOutputFilter` is the measured place for it.
     :param meta_prefix: prefix for the keys written into the answer's `response_metadata`.
     :param refusal: what the agent answers instead of calling the model, in `drop` mode.
+    :param forget: in `drop` mode, take the refused turn out of the conversation as well as out of
+        this call. See below for why the default is to forget it.
     """
 
     def __init__(self, mode: str = "drop", roles: dict[str, str] | None = None,
                  meta_prefix: str = "picket",
                  refusal: str = "This request was not sent to the model: it carries a prompt "
-                                "injection.") -> None:
+                                "injection.",
+                 forget: bool = True) -> None:
         super().__init__()
         self.mode = mode
         self.roles = dict(DEFAULT_ROLES if roles is None else roles)
         self.meta_prefix = meta_prefix
         self.refusal = refusal
+        self.forget = forget
         self._guard = DialogueGuard(mode=mode, roles=roles, meta_prefix=meta_prefix)
 
     @property
     def name(self) -> str:
         return f"{type(self).__name__}[{','.join(sorted(self.roles))}]"
 
-    def _decide(self, request: Any) -> tuple[Any, dict[str, Any]]:
-        """The verdict for this call, and the metadata to record. `None` verdict means nothing read.
+    def _decide(self, request: Any) -> tuple[Any, dict[str, Any], list[str]]:
+        """The verdict, the metadata to record, and the ids of the messages that were flagged.
+
+        `None` verdict means nothing was read.
 
         `request.messages` is what is about to be sent, minus the system message the host keeps
         beside it. The system message is not read: it is the operator's own text, and an operator
@@ -100,18 +106,24 @@ class PromptInjectionGuard(AgentMiddleware):
         if not any(self._guard.reads(role) for role, _ in pairs):
             # Nothing here plays a role the policy reads. Not "read and clean" — not read, and no
             # metadata is written anywhere, which is the only way the caller can tell them apart.
-            return None, {}
+            return None, {}, []
         verdict = self._guard.decide(pairs)
         meta: dict[str, Any] = {}
+        flagged: list[str] = []
         for position, index in enumerate(indices):
             found = self._guard.meta(verdict, position)
-            if found:
-                # Keyed by the message id rather than by position: the caller reading the answer's
-                # metadata has the message objects, not our slice of them.
-                meta[str(messages[index].id)] = found
-        return verdict, meta
+            if not found:
+                continue
+            # Keyed by the message id rather than by position: the caller reading the answer's
+            # metadata has the message objects, not our slice of them.
+            message_id = messages[index].id
+            meta[str(message_id)] = found
+            if found.get(f"{self.meta_prefix}_flagged") and message_id:
+                flagged.append(str(message_id))
+        return verdict, meta, flagged
 
-    def _refuse(self, verdict: Any, meta: dict[str, Any]) -> ExtendedModelResponse:
+    def _refuse(self, verdict: Any, meta: dict[str, Any],
+                flagged: list[str]) -> ExtendedModelResponse:
         """The answer the caller gets instead of the model's, and an explicit end to the run.
 
         NOT a bare `AIMessage`. Skipping the model call is enough to end an ordinary agent, whose
@@ -124,6 +136,18 @@ class PromptInjectionGuard(AgentMiddleware):
 
         `jump_to` in a state update is read by both edges out of the model node before anything
         else, so this ends the run in every shape of agent — plain, with tools, with a schema.
+
+        AND THE REFUSED TURN LEAVES THE CONVERSATION. Not calling the model with it is only half the
+        job: an agent keeps the exchange in its state, and the NEXT turn is assembled from that
+        state — so the attack that was refused on Tuesday is in the context on Wednesday, and the
+        model reads it there. Measured on three corpus attacks with a local model: with the turn
+        left in the thread, the answer to the following innocuous question came back in the
+        attacker's persona ("JailBreak: …", "[CLASSIC] … [JESTER] …") every time; with the turn
+        removed, it came back as an ordinary answer every time. So `drop` removes it, and what
+        remains in the thread is our refusal, which carries the threats and the finding.
+
+        `forget=False` keeps it, for a caller who would rather hold the whole transcript and knows
+        that the next turn goes to the model with the attack inside it.
         """
         logger.warning("prompt injection in the request: %s, action %s",
                        ", ".join(verdict.threats), self.mode)
@@ -132,8 +156,11 @@ class PromptInjectionGuard(AgentMiddleware):
             f"{self.meta_prefix}_threats": list(verdict.threats),
             f"{self.meta_prefix}_messages": meta,
         })
+        update: dict[str, Any] = {"jump_to": "end"}
+        if self.forget and flagged:
+            update["messages"] = [RemoveMessage(id=i) for i in flagged]
         return ExtendedModelResponse(model_response=ModelResponse(result=[message]),
-                                     command=Command(update={"jump_to": "end"}))
+                                     command=Command(update=update))
 
     def _mark(self, response: Any, verdict: Any, meta: dict[str, Any]) -> Any:
         """Record what was found on the answer the model gave.
@@ -166,14 +193,14 @@ class PromptInjectionGuard(AgentMiddleware):
         return response
 
     def wrap_model_call(self, request: Any, handler: Callable[[Any], Any]) -> Any:
-        verdict, meta = self._decide(request)
+        verdict, meta, flagged = self._decide(request)
         if verdict is None:
             return handler(request)
         if verdict.flagged and not verdict.keep:
             # The handler is never called, so the model is never sent the turn. The run ends here
             # because the message we return carries no tool calls, and the caller gets an answer
             # rather than their own message reflected back at them.
-            return self._refuse(verdict, meta)
+            return self._refuse(verdict, meta, flagged)
         return self._mark(handler(request), verdict, meta)
 
     async def awrap_model_call(self, request: Any,
@@ -185,11 +212,11 @@ class PromptInjectionGuard(AgentMiddleware):
         I/O to await — it is a rule over a string — so this is the sync body with the handler
         awaited.
         """
-        verdict, meta = self._decide(request)
+        verdict, meta, flagged = self._decide(request)
         if verdict is None:
             return await handler(request)
         if verdict.flagged and not verdict.keep:
-            return self._refuse(verdict, meta)
+            return self._refuse(verdict, meta, flagged)
         return self._mark(await handler(request), verdict, meta)
 
 

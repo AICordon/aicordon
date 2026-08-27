@@ -99,6 +99,20 @@ is no arrangement in which it declines the call and answers instead. `PromptInje
 raises on the mode rather than imitating it, and points at the two real ways to have it: `fail`, or
 a `RunnableBranch` on `.flagged`. In an agent the decision has a proper home.
 
+**A refused turn is removed from the agent's state, not only from the call.** `drop` skips the model
+call — and `create_agent` keeps the exchange, assembling the NEXT call from it, so a turn left in
+the thread reaches the model one turn late. Measured on three corpus attacks with a local model: the
+answer to an innocuous follow-up came back in the attacker's persona every time while the turn
+stayed, and as an ordinary answer every time once it was removed. Only the flagged message goes; the
+refusal stays and carries the finding.
+
+**A history the caller assembles elsewhere is not re-read.** The guard reads what arrived since the
+model last spoke, so a transcript handed in wholesale — from the caller's own store, ending in an
+assistant message — is checked only from its newest turn on. That is deliberate: re-reading the
+whole transcript on every call bills the same turns again and again. It also means a conversation
+restored from somewhere that never had a guard in it carries whatever is in it. Guard the turns as
+they arrive, and what is in the thread will have been read once each.
+
 **The request guard reads what arrived since the model last spoke.** `wrap_model_call` runs once per
 model call, so reading the whole history each time would re-bill the opening turn on every step of
 a loop. The tail after the last `AIMessage` is what is new; on the first call there is none, and the

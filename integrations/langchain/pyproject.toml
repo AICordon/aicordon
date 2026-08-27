@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aicordon-langchain"
-version = "0.1.0"
+version = "0.1.1"
 description = "Check what an LLM is given for prompt injection: material at ingest, tool output, and the turn it answers"
 readme = "README.md"
 requires-python = ">=3.10"

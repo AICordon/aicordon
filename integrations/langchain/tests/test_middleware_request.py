@@ -7,6 +7,7 @@ from conftest import fake_model
 from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, HumanMessage
 from langchain_core.tools import tool
+from langgraph.checkpoint.memory import InMemorySaver
 
 from aicordon_langchain import PromptInjectionGuard
 
@@ -92,9 +93,9 @@ def test_the_opening_turn_is_read_once_however_long_the_loop_runs() -> None:
 
     class Counting(PromptInjectionGuard):
         def _decide(self, request):  # noqa: ANN001, ANN202
-            verdict, meta = super()._decide(request)
+            verdict, meta, flagged = super()._decide(request)
             read.append("read" if verdict is not None else "skipped")
-            return verdict, meta
+            return verdict, meta, flagged
 
     model = fake_model(
         AIMessage(content="", tool_calls=[{"name": "fetch", "args": {"url": "u"}, "id": "c1"}]),
@@ -131,6 +132,48 @@ def test_a_refusal_ends_an_agent_that_has_tools(attack: str) -> None:
         {"messages": [HumanMessage(content=attack)]})
     assert model.calls == []
     assert out["messages"][-1].response_metadata["picket_blocked"] is True
+
+
+def test_the_refused_turn_leaves_the_conversation(attack: str) -> None:
+    """Not calling the model with it is half the job. An agent keeps the exchange in its state and
+    assembles the NEXT call from that state, so a refused turn left in the thread is in the context
+    one turn later — measured with a local model, the answer to the following innocuous question
+    came back in the attacker's persona."""
+    saver = InMemorySaver()
+    agent = create_agent(model=fake_model(AIMessage(content="ordinary answer")), tools=[],
+                         middleware=[PromptInjectionGuard()], checkpointer=saver)
+    config = {"configurable": {"thread_id": "t"}}
+    agent.invoke({"messages": [HumanMessage(content=attack)]}, config)
+    left = agent.get_state(config).values["messages"]
+    assert not any(attack[:60] in str(m.content) for m in left), \
+        "the refused turn is still in the thread and will be sent with the next one"
+    assert any(m.response_metadata.get("picket_blocked") for m in left), \
+        "the refusal itself did not stay, so nothing records what happened"
+
+
+def test_forget_false_keeps_the_turn_for_a_caller_who_asked_for_it(attack: str) -> None:
+    saver = InMemorySaver()
+    agent = create_agent(model=fake_model(AIMessage(content="ordinary answer")), tools=[],
+                         middleware=[PromptInjectionGuard(forget=False)], checkpointer=saver)
+    config = {"configurable": {"thread_id": "t"}}
+    agent.invoke({"messages": [HumanMessage(content=attack)]}, config)
+    left = agent.get_state(config).values["messages"]
+    assert any(attack[:60] in str(m.content) for m in left)
+
+
+def test_a_clean_turn_beside_a_flagged_one_is_not_forgotten(attack: str) -> None:
+    """Only what was flagged goes. A tail can hold more than one message, and removing the innocent
+    ones with it would rewrite the conversation on the caller."""
+    saver = InMemorySaver()
+    agent = create_agent(model=fake_model(AIMessage(content="ordinary answer")), tools=[],
+                         middleware=[PromptInjectionGuard(roles={"user": "dpi"})],
+                         checkpointer=saver)
+    config = {"configurable": {"thread_id": "t"}}
+    agent.invoke({"messages": [HumanMessage(content="What plans do you offer?"),
+                               HumanMessage(content=attack)]}, config)
+    left = [str(m.content) for m in agent.get_state(config).values["messages"]]
+    assert any("What plans do you offer?" in m for m in left), "a clean turn was removed too"
+    assert not any(attack[:60] in m for m in left)
 
 
 @pytest.mark.asyncio

@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.1.1 — 2026-08-27
+
+### A refused turn now leaves the conversation
+
+`PromptInjectionGuard` in `drop` mode did not send the flagged turn to the model — and left it in
+the agent's state, where the NEXT turn was assembled from. So the attack refused on one turn was in
+the context on the following one, and the model read it there.
+
+Measured end to end on three corpus attacks with a local model, asking an innocuous question after
+the refusal:
+
+| | refused | left in the thread | the answer to the next, clean question |
+|---|---|---|---|
+| no guard | — | yes | `JailBreak: …`, `[CLASSIC] … [JESTER] …` |
+| 0.1.0 | yes | yes | `JailBreak: …`, `[CLASSIC] … [JESTER] …` |
+| 0.1.1 | yes | **no** | an ordinary support answer, all three times |
+
+The refusal itself stays in the thread and carries the threats, so what happened is still on the
+record. Only what was flagged is removed — a clean turn beside it in the same batch is kept.
+`PromptInjectionGuard(forget=False)` restores the old behaviour for a caller who would rather hold
+the whole transcript and knows the next turn carries the attack into the model.
+
+This is a wrapper-side fix; nothing in the detector or the shared policy changed. Haystack is not
+affected: a pipeline is handed its message list by the caller and keeps no thread of its own.
+
 ## 0.1.0 — 2026-08-26
 
 First release. AI Cordon Picket for LangChain, in four places a string reaches a model.

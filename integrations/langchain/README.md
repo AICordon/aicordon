@@ -98,11 +98,16 @@ agent = create_agent(
 )
 ```
 
-On a flagged turn the model is **not called**, and the agent answers with the guard's own message
+On a flagged turn the model is **not called**, the refused turn is taken out of the conversation so
+that the next turn is not assembled with it, and the agent answers with the guard's own message
 instead — `mode="annotate"` calls the model and records the finding on the answer, `mode="fail"`
 raises `InjectionFound`. What is read is the request: by default the user's turns, and nothing else.
 The system message is the operator's own text, and an operator who wants to steer their own model
 does not need an injection to do it.
+
+The refusal stays in the thread and carries the finding; only the flagged turn goes. Pass
+`forget=False` to keep it, knowing that the next call to the model then carries the attack in its
+history.
 
 Both middlewares in one agent, each on its own side:
 
@@ -128,6 +133,10 @@ chain = prompt | RunnableBranch((guard.flagged, refusal), model)
 
 Inside an agent the same decision has a proper home — prefer `PromptInjectionGuard` when there is
 an agent to put it in.
+
+Turns are read as they arrive — what came in since the model last spoke. A transcript you assemble
+yourself and hand over whole is read from its newest turn on, not re-read end to end, so keep the
+guard in the loop that appends to it rather than passing it an unchecked history.
 
 ## Nothing is rewritten on the request side
 
