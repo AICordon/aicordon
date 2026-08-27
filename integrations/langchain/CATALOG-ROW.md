@@ -20,9 +20,15 @@ under `python: middleware:`:
   - name: AI Cordon Picket
     pypi: aicordon-langchain
     docs_url: https://github.com/AICordon/aicordon/blob/main/integrations/langchain/README.md
-    available: "Deterministic, rule-based prompt-injection checks on both sides of the prompt: the turn an agent is about to answer, and the material it is given — tool output and documents at ingest. No model, no GPU, no network, no key."
+    available: "Deterministic, rule-based prompt-injection checks, with a rule set per role a text plays: one scans material — documents at ingest and tool output — the other reads the dialogue turn before the model answers it. No model, no GPU, no network, no key."
     source: "[`AICordon/aicordon`](https://github.com/AICordon/aicordon/tree/main/integrations/langchain)"
 ```
+
+**The row names the two rule sets by the ROLE a text plays, not by where it came from.** Scanning
+against dialogue is the plain reading of the pair, and it is nearly right — but a tool result sits
+inside a dialogue and is material all the same, so it is named on the scanning side explicitly. Get
+that wrong in one sentence and a reader puts a fetched page through the rules written for a typed
+jailbreak, which is a different detector pointed at text it was never measured on.
 
 **"Deterministic, rule-based" is doing work, and it is the only place we can do it.** Their
 guardrails guide splits the field in two — *deterministic*, "rule-based logic like regex patterns,
