@@ -1,7 +1,7 @@
 """Run the ten demonstration DOCUMENTS through the detector, one row each.
 
 Ten is the point: you can read the whole set, then see which document fired, which rule fired on it,
-and how much redaction took away. Nothing is averaged — an average over ten chosen examples is not a
+and how much the cut took away. Nothing is averaged — an average over ten chosen examples is not a
 measurement.
 
 Measured numbers live on Quadrat-IPI, 16 800 injections across three carriers:
@@ -24,7 +24,7 @@ def main() -> int:
     if not manifest.exists():
         raise SystemExit("no manifest.jsonl here: build the set with `python3 build.py` first")
     rows = [json.loads(l) for l in manifest.open()]
-    guard = InjectionGuard(mode="redact")
+    guard = InjectionGuard(mode="mask")
     guard.warm_up()
 
     print(f"{'document':22s} {'label':9s} {'verdict':9s} {'cut':>6s}  what fired")

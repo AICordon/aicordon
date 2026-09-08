@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aicordon-haystack"
-version = "0.1.1"
+version = "0.2.0"
 description = "Check what an LLM is given for prompt injection: material at ingest, and the turn it answers"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -21,10 +21,12 @@ classifiers = [
     "Topic :: Security",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-# `>=1.1.1`, not `>=1.1.0`: `aicordon.guard` was folded into the detector in 1.1.0, and 1.1.1 fixed
-# what the cut removes — an injection wrapped across lines lost only the line the span sat on.
-# Against an older one the install resolves and the redaction quietly leaves half the instruction.
-dependencies = ["haystack-ai>=3.0.0", "aicordon>=1.1.1"]
+# `>=1.2.0`: 1.1.0 folded `aicordon.guard` into the detector, 1.1.1 fixed what the cut removes — an
+# injection wrapped across lines lost only the line the span sat on, and against an older one the
+# cut quietly leaves half the instruction — and 1.2.0 made `passthrough` the default on both
+# sides. The wrapper always passes its own mode down, so an older core would still run; the floor is
+# here so that one install and one set of documents describe the same behaviour.
+dependencies = ["haystack-ai>=3.0.0", "aicordon>=1.2.0"]
 
 [project.urls]
 Homepage = "https://github.com/AICordon/aicordon/blob/main/integrations/haystack/README.md"

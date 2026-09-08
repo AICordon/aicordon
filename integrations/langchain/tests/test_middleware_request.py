@@ -19,6 +19,9 @@ def fetch(url: str) -> str:
 
 
 def agent(model, **kw):  # noqa: ANN001, ANN003, ANN201
+    """`drop` unless a test says otherwise: the default is `passthrough`, and what is checked here is
+    the refusal path, which only a blocking mode produces."""
+    kw.setdefault("mode", "drop")
     return create_agent(model=model, tools=[], middleware=[PromptInjectionGuard(**kw)])
 
 
@@ -45,7 +48,7 @@ def test_a_flagged_request_is_not_sent_and_the_caller_gets_an_answer(attack: str
 
 def test_annotate_calls_the_model_and_records_the_finding_on_the_answer(attack: str) -> None:
     model = fake_model(AIMessage(content="answered anyway"))
-    out = agent(model, mode="annotate").invoke({"messages": [HumanMessage(content=attack)]})
+    out = agent(model, mode="passthrough").invoke({"messages": [HumanMessage(content=attack)]})
     assert len(model.calls) == 1
     meta = out["messages"][-1].response_metadata
     assert meta["picket_request_flagged"] is True
@@ -55,7 +58,7 @@ def test_annotate_calls_the_model_and_records_the_finding_on_the_answer(attack: 
 
 def test_annotate_on_a_clean_request_still_says_it_was_read() -> None:
     model = fake_model(AIMessage(content="Paris."))
-    out = agent(model, mode="annotate").invoke({"messages": [HumanMessage(content="Capital?")]})
+    out = agent(model, mode="passthrough").invoke({"messages": [HumanMessage(content="Capital?")]})
     meta = out["messages"][-1].response_metadata
     assert meta["picket_request_flagged"] is False
     assert list(meta["picket_messages"].values())[0]["picket_action"] == "none"
@@ -80,7 +83,7 @@ def test_the_human_message_is_read_as_the_user_role(attack: str) -> None:
 def test_a_role_the_map_leaves_out_is_not_read_at_all(attack: str) -> None:
     """"Not read" is a different fact from "read and clean", and the metadata has to show it."""
     model = fake_model(AIMessage(content="through"))
-    out = agent(model, mode="annotate", roles={"tool": "ipi"}).invoke(
+    out = agent(model, mode="passthrough", roles={"tool": "ipi"}).invoke(
         {"messages": [HumanMessage(content=attack)]})
     assert len(model.calls) == 1
     assert "picket_request_flagged" not in out["messages"][-1].response_metadata
@@ -117,7 +120,7 @@ def test_a_refusal_ends_an_agent_asked_for_structured_output(attack: str) -> Non
         city: str
 
     model = fake_model(AIMessage(content="should never be produced"))
-    out = create_agent(model=model, tools=[], middleware=[PromptInjectionGuard()],
+    out = create_agent(model=model, tools=[], middleware=[PromptInjectionGuard(mode="drop")],
                        response_format=Answer).invoke(
         {"messages": [HumanMessage(content=attack)]})
     assert model.calls == []
@@ -128,10 +131,20 @@ def test_a_refusal_ends_an_agent_asked_for_structured_output(attack: str) -> Non
 def test_a_refusal_ends_an_agent_that_has_tools(attack: str) -> None:
     """The same, with the other edge out of the model node."""
     model = fake_model(AIMessage(content="should never be produced"))
-    out = create_agent(model=model, tools=[fetch], middleware=[PromptInjectionGuard()]).invoke(
+    out = create_agent(model=model, tools=[fetch], middleware=[PromptInjectionGuard(mode="drop")]).invoke(
         {"messages": [HumanMessage(content=attack)]})
     assert model.calls == []
     assert out["messages"][-1].response_metadata["picket_blocked"] is True
+
+
+def test_the_default_answers_the_turn(attack: str) -> None:
+    """Adding the middleware must not silently stop an agent answering people. The default calls
+    the model and puts the finding on the answer; refusing is a mode somebody chose."""
+    model = fake_model(AIMessage(content="Paris."))
+    out = create_agent(model=model, tools=[], middleware=[PromptInjectionGuard()]).invoke(
+        {"messages": [HumanMessage(content=attack)]})
+    assert len(model.calls) == 1
+    assert out["messages"][-1].response_metadata["picket_request_flagged"] is True
 
 
 def test_the_refused_turn_leaves_the_conversation(attack: str) -> None:
@@ -141,7 +154,7 @@ def test_the_refused_turn_leaves_the_conversation(attack: str) -> None:
     came back in the attacker's persona."""
     saver = InMemorySaver()
     agent = create_agent(model=fake_model(AIMessage(content="ordinary answer")), tools=[],
-                         middleware=[PromptInjectionGuard()], checkpointer=saver)
+                         middleware=[PromptInjectionGuard(mode="drop")], checkpointer=saver)
     config = {"configurable": {"thread_id": "t"}}
     agent.invoke({"messages": [HumanMessage(content=attack)]}, config)
     left = agent.get_state(config).values["messages"]
@@ -154,7 +167,7 @@ def test_the_refused_turn_leaves_the_conversation(attack: str) -> None:
 def test_forget_false_keeps_the_turn_for_a_caller_who_asked_for_it(attack: str) -> None:
     saver = InMemorySaver()
     agent = create_agent(model=fake_model(AIMessage(content="ordinary answer")), tools=[],
-                         middleware=[PromptInjectionGuard(forget=False)], checkpointer=saver)
+                         middleware=[PromptInjectionGuard(mode="drop", forget=False)], checkpointer=saver)
     config = {"configurable": {"thread_id": "t"}}
     agent.invoke({"messages": [HumanMessage(content=attack)]}, config)
     left = agent.get_state(config).values["messages"]
@@ -166,7 +179,7 @@ def test_a_clean_turn_beside_a_flagged_one_is_not_forgotten(attack: str) -> None
     ones with it would rewrite the conversation on the caller."""
     saver = InMemorySaver()
     agent = create_agent(model=fake_model(AIMessage(content="ordinary answer")), tools=[],
-                         middleware=[PromptInjectionGuard(roles={"user": "dpi"})],
+                         middleware=[PromptInjectionGuard(mode="drop", roles={"user": "dpi"})],
                          checkpointer=saver)
     config = {"configurable": {"thread_id": "t"}}
     agent.invoke({"messages": [HumanMessage(content="What plans do you offer?"),

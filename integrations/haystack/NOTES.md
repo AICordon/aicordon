@@ -28,7 +28,7 @@ Source of truth: the docstring of `haystack/core/component/component.py`, which 
 
 1. The detector is heavy state (a 376 KB base, ~17 ms to load): raise it in `warm_up()`, not in
    `__init__`. Otherwise the cost is paid on every pipeline assembly, validation included.
-2. Pass only strings into `__init__`: the mode (`redact` / `drop` / `annotate`), the metadata
+2. Pass only strings into `__init__`: the mode (`mask` / `drop` / `passthrough`), the metadata
    prefix. No "hand the detector object in here" — that breaks saving the pipeline.
 3. Copy documents before editing their text: in an indexing pipeline the same list may go into a
    second branch.
@@ -48,19 +48,34 @@ second wire `blocked → whoever answers instead of the model`. RIGHT NEXT to th
 message list about to enter it: anything between the check and the call is one more place the text
 could change.
 
+## The end-to-end stand (2026-09-08)
+
+`experiments/45_picket_direct/haystack_pipeline/stand.py` in the research repository builds the two
+pipelines a RAG application really has — index, retrieve, assemble, generate — and checks what
+reaches the generator against a CONTROL pipeline with no components in it at all. That is what makes
+the passthrough claim checkable: not "the component reports it did nothing" but "the prompt is the
+one the pipeline would have built without us, character for character". 25 checks, all passing at
+0.2.0. Findings and what it deliberately does not cover: `RESULTS.md` beside it.
+
 ## Traps the mock-up caught (2026-08-13)
 
 1. **Settings are lost silently when a pipeline is saved.** Without a `to_dict` of its own, Haystack
    restores parameters through `getattr(obj, "<parameter name>")`, and where the attribute is
    missing it **substitutes the default from the signature** and says nothing. A component built
-   with `mode="annotate"` came back out of YAML as `redact`. The cure: keep the parameters on the
-   object under those same names AND declare `to_dict`/`from_dict` via
+   with an explicit mode came back out of YAML as the signature default. The cure: keep the
+   parameters on the object under those same names AND declare `to_dict`/`from_dict` via
    `default_to_dict`/`default_from_dict`. Covered by a YAML round trip in the tests.
+
+   The same fallback bites across an upgrade: 0.2.0 changed both defaults to `passthrough`, so a
+   component serialised by an older release without its mode reads back in the new default rather
+   than the old one. A pipeline saved by 0.1.x with `to_dict` in place carries its mode explicitly
+   and is unaffected. Reproduced end to end on a running pipeline by stripping the
+   `mode:` line out of a dump — see the stand below.
 2. **The order of chunks out of a store is not guaranteed**, and `split_overlap` repeats the tail of
    the previous chunk. A measurement that glued chunks back together reported 92.5% where the answer
    is 100% because of it. The acceptance measurement now has no splitter in it at all: it stands
    AFTER us and cannot affect the result.
-3. **Logging is not a mode.** It is wanted under `drop` as much as under `annotate`, so it goes
+3. **Logging is not a mode.** It is wanted under `drop` as much as under `passthrough`, so it goes
    through `haystack.logging` at `warning` level rather than being a value of the parameter.
 
 ## What carries over to another framework

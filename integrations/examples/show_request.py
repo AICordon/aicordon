@@ -29,7 +29,7 @@ def main() -> int:
     rows = [json.loads(l) for l in src.open()]
     guard = DialogueGuard(mode="drop")
     guard.warm_up()
-    bare = TurnGuard(mode="annotate")          # the same dpi rules, with no wrapper around them
+    bare = TurnGuard(mode="passthrough")          # the same dpi rules, with no wrapper around them
     bare.warm_up()
 
     print(f"{'exchange':22s} {'label':7s} {'turns':>5s}  {'goes to the model':18s} what fired")

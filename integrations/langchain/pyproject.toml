@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aicordon-langchain"
-version = "0.1.1"
+version = "0.2.0"
 description = "Check what an LLM is given for prompt injection: material at ingest, tool output, and the turn it answers"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -25,9 +25,10 @@ classifiers = [
 # Two host requirements, because the package covers two surfaces. `langchain-core` alone carries
 # documents and runnables; the agent middleware lives in `langchain`, and the floor is 1.3 rather
 # than 1.0 because refusing a turn returns an `ExtendedModelResponse` — without it an agent built
-# with `response_format` never stops. `aicordon>=1.1.1`: the cut boundary was fixed there, and
-# against an older one the wrapper installs and quietly under-removes.
-dependencies = ["langchain-core>=1.0.0", "langchain>=1.3.0", "aicordon>=1.1.1"]
+# with `response_format` never stops. `aicordon>=1.2.0`: the cut boundary was fixed in 1.1.1, and
+# against an older one the wrapper installs and quietly under-removes; 1.2.0 made `passthrough` the
+# default on both sides, so one install and one set of documents describe the same behaviour.
+dependencies = ["langchain-core>=1.0.0", "langchain>=1.3.0", "aicordon>=1.2.0"]
 
 [project.urls]
 Homepage = "https://github.com/AICordon/aicordon/blob/main/integrations/langchain/README.md"

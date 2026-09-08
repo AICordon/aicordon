@@ -26,7 +26,7 @@ DOCS = [
 
 store = InMemoryDocumentStore()
 pipe = Pipeline()
-pipe.add_component("ipi_filter", PromptInjectionFilter(mode="redact"))
+pipe.add_component("ipi_filter", PromptInjectionFilter(mode="mask"))
 pipe.add_component("splitter", DocumentSplitter(split_by="word", split_length=60))
 pipe.add_component("writer", DocumentWriter(document_store=store))
 pipe.connect("ipi_filter.documents", "splitter.documents")

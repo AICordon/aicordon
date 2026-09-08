@@ -342,6 +342,11 @@ from haystack_integrations.components.preprocessors.aicordon import PromptInject
 from haystack_integrations.components.validators.aicordon import PromptInjectionGuard
 ```
 
+**Both default to `passthrough`:** they read, write what they found into the metadata, and pass the
+text on untouched. Installing a package should not start rewriting your documents or stop your
+pipeline answering people — `mode="mask"` at ingest and `mode="drop"` on the request are decisions
+to take once you have seen what fires on your own material.
+
 Where each component connects, and what a pipeline delivers with it and without:
 [integrations/haystack](https://github.com/AICordon/aicordon/blob/main/integrations/haystack/README.md).
 
