@@ -4,8 +4,7 @@ The transformer sits between the loader and the splitter of an ingest, which in 
 of your own code rather than a pipeline object:
 
     docs = TextLoader("kb.md").load()
-    docs = PromptInjectionFilter().transform_documents(docs)              # passthrough by default
-    docs = PromptInjectionFilter(mode="mask").transform_documents(docs)    # or take it out
+    docs = PromptInjectionFilter().transform_documents(docs)   # or (mode="mask") to take it out
     chunks = RecursiveCharacterTextSplitter().split_documents(docs)
 
 Everything it decides comes from `aicordon.guard.InjectionGuard`; what lives here is the translation

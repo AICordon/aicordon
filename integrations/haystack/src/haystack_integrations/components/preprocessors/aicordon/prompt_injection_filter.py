@@ -5,8 +5,7 @@ decides comes from `aicordon.guard.InjectionGuard`; what lives here is the trans
 Haystack's types and its contract — nothing else, so the same policy serves the other frameworks
 unchanged.
 
-    pipe.add_component("ipi_filter", PromptInjectionFilter())     # passthrough: nothing is edited
-    pipe.add_component("ipi_filter", PromptInjectionFilter(mode="mask"))     # or take it out
+    pipe.add_component("ipi_filter", PromptInjectionFilter())    # or (mode="mask") to take it out
     pipe.connect("converter.documents", "ipi_filter.documents")
     pipe.connect("ipi_filter.documents", "splitter.documents")
     pipe.connect("ipi_filter.rejected", "quarantine.documents")   # optional, nothing is lost silently
