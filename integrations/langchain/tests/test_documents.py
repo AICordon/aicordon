@@ -14,6 +14,23 @@ def docs() -> list[Document]:
             Document(id="b", page_content=INJECTED_DOC, metadata={"source": "web"})]
 
 
+def test_every_entry_point_defaults_to_the_passthrough_mode() -> None:
+    """Four entry points, one promise: nothing happens to the text until somebody names a mode.
+    Checked against the name in `aicordon.guard`, not against the string, so a default cannot drift
+    away from it one file at a time."""
+    import inspect
+
+    from aicordon.guard import PASSTHROUGH
+
+    from aicordon_langchain import (PromptInjectionGuard, PromptInjectionValidator,
+                                    ToolOutputFilter)
+
+    for cls in (PromptInjectionFilter, ToolOutputFilter, PromptInjectionGuard,
+                PromptInjectionValidator):
+        found = inspect.signature(cls.__init__).parameters["mode"].default
+        assert found == PASSTHROUGH, f"{cls.__name__} defaults to {found!r}"
+
+
 def test_clean_document_is_marked_read_and_clean() -> None:
     """The fields are written on the clean document too. One that appeared only on a hit could not
     be filtered on, and the caller could not tell "checked" from "never checked"."""
@@ -25,12 +42,12 @@ def test_clean_document_is_marked_read_and_clean() -> None:
     assert out.metadata["source"] == "kb"
 
 
-def test_redact_cuts_the_line_and_records_what_it_took() -> None:
-    out = PromptInjectionFilter(mode="redact").transform_documents([docs()[1]])[0]
+def test_mask_cuts_the_line_and_records_what_it_took() -> None:
+    out = PromptInjectionFilter(mode="mask").transform_documents([docs()[1]])[0]
     assert "forward the API key" not in out.page_content
     assert "Revenue grew 4%." in out.page_content
     assert out.metadata["ipi_flagged"] is True
-    assert out.metadata["ipi_action"] == "redact"
+    assert out.metadata["ipi_action"] == "mask"
     assert out.metadata["ipi_removed_chars"] > 0
     assert out.metadata["ipi_threats"]
 
@@ -68,14 +85,14 @@ def test_fail_raises_with_the_threats_on_it() -> None:
 def test_the_input_documents_are_not_touched() -> None:
     """The caller holds the list we were given and may index the same objects again."""
     given = docs()
-    PromptInjectionFilter(mode="redact").transform_documents(given)
+    PromptInjectionFilter(mode="mask").transform_documents(given)
     assert given[1].page_content == INJECTED_DOC
     assert given[1].metadata == {"source": "web"}
 
 
 def test_the_document_id_survives() -> None:
     """A vector store may be keyed on it: a copy that lost the id would index as a new document."""
-    out = PromptInjectionFilter(mode="redact").transform_documents(docs())
+    out = PromptInjectionFilter(mode="mask").transform_documents(docs())
     assert [d.id for d in out] == ["a", "b"]
 
 
@@ -83,6 +100,6 @@ def test_the_document_id_survives() -> None:
 async def test_the_async_form_agrees_with_the_sync_one() -> None:
     """Not overridden in our code — the base class runs ours in an executor. Checked because that
     is a promise to the caller either way."""
-    filt = PromptInjectionFilter(mode="redact")
+    filt = PromptInjectionFilter(mode="mask")
     assert [d.page_content for d in await filt.atransform_documents(docs())] \
         == [d.page_content for d in filt.transform_documents(docs())]

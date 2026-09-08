@@ -71,7 +71,7 @@ def survival(payload: str, seen: str) -> float:
         return 1.0
     match = SequenceMatcher(None, p, seen, autojunk=False).find_longest_match(0, len(p), 0, len(seen))
     # A run shorter than this is language, not payload: any two English texts share "of the", and
-    # counting that as a surviving fragment would make redaction look worse than it is.
+    # counting that as a surviving fragment would make the cut look worse than it is.
     return match.size / len(p) if match.size >= 25 else 0.0
 
 

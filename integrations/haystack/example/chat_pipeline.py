@@ -33,7 +33,7 @@ class Refusal:
 
 
 pipe = Pipeline()
-pipe.add_component("guard", PromptInjectionGuard())          # mode="drop" is the default
+pipe.add_component("guard", PromptInjectionGuard(mode="drop"))   # without it the turn goes on, marked
 pipe.add_component("llm", Answer())
 pipe.add_component("refusal", Refusal())
 pipe.connect("guard.messages", "llm.messages")

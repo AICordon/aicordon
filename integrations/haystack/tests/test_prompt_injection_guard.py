@@ -25,7 +25,7 @@ def attack() -> str:
     Writing one by hand tests nothing: the `dpi` rules were fitted on forum role-play, and a
     plausible-looking two-line DAN is exactly the short form they do not fire on.
     """
-    guard = PromptInjectionGuard()
+    guard = PromptInjectionGuard(mode="drop")
     guard.warm_up()
     with DIRECT.open() as fh:
         for line in fh:
@@ -38,6 +38,9 @@ def attack() -> str:
 
 
 def guard(**kw) -> PromptInjectionGuard:
+    """A warmed component. `drop` unless a test says otherwise: the default is `passthrough`, and most
+    of what is checked here is the branching, which only a blocking mode produces."""
+    kw.setdefault("mode", "drop")
     g = PromptInjectionGuard(**kw)
     g.warm_up()
     return g
@@ -60,9 +63,9 @@ def test_flagged_exchange_carries_no_messages_socket_at_all(attack: str) -> None
 
 
 def test_annotate_lets_the_exchange_through_and_says_so(attack: str) -> None:
-    out = guard(mode="annotate").run([ChatMessage.from_user(attack)])
+    out = guard(mode="passthrough").run([ChatMessage.from_user(attack)])
     assert list(out) == ["messages"]
-    assert out["messages"][0].meta["picket_action"] == "annotate"
+    assert out["messages"][0].meta["picket_action"] == "passthrough"
 
 
 def test_only_the_roles_in_the_map_are_read(attack: str) -> None:
@@ -115,12 +118,12 @@ def test_settings_survive_a_round_trip_through_yaml() -> None:
     """Without `to_dict`, Haystack reads init parameters back with `getattr` and silently falls
     back to the signature default. This caught a component that came out of YAML in another mode."""
     pipe = Pipeline()
-    pipe.add_component("guard", PromptInjectionGuard(mode="annotate",
+    pipe.add_component("guard", PromptInjectionGuard(mode="passthrough",
                                                     roles={"user": "dpi", "tool": "ipi"},
                                                     meta_prefix="picket_test"))
     back = Pipeline.loads(pipe.dumps()).get_component("guard")
     assert (back.mode, back.roles, back.meta_prefix) == (
-        "annotate", {"user": "dpi", "tool": "ipi"}, "picket_test")
+        "passthrough", {"user": "dpi", "tool": "ipi"}, "picket_test")
 
 
 def test_a_blocked_exchange_does_not_run_the_next_component(attack: str) -> None:
@@ -128,7 +131,7 @@ def test_a_blocked_exchange_does_not_run_the_next_component(attack: str) -> None
     from haystack.components.builders import ChatPromptBuilder
 
     pipe = Pipeline()
-    pipe.add_component("guard", PromptInjectionGuard())
+    pipe.add_component("guard", PromptInjectionGuard(mode="drop"))
     pipe.add_component("downstream", ChatPromptBuilder(variables=[], required_variables=[]))
     pipe.connect("guard.messages", "downstream.template")
     clean = pipe.run({"guard": {"messages": [ChatMessage.from_user("what time is it?")]}})
@@ -136,6 +139,24 @@ def test_a_blocked_exchange_does_not_run_the_next_component(attack: str) -> None
     assert "downstream" not in pipe.run({"guard": {"messages": [ChatMessage.from_user(attack)]}})
 
 
+def test_the_default_answers_the_turn(attack: str) -> None:
+    """Adding the component must not silently stop the pipeline answering people. The default
+    reads and marks; blocking is a mode somebody chose."""
+    out = PromptInjectionGuard().run([ChatMessage.from_user(attack)])
+    assert list(out) == ["messages"]
+    assert out["messages"][0].meta["picket_flagged"] is True
+    assert out["messages"][0].meta["picket_action"] == "passthrough"
+
+
+def test_the_default_is_the_passthrough_mode() -> None:
+    import inspect
+
+    from aicordon.guard import PASSTHROUGH
+
+    found = inspect.signature(PromptInjectionGuard.__init__).parameters["mode"].default
+    assert found == PASSTHROUGH
+
+
 def test_an_editing_mode_is_refused_rather_than_approximated() -> None:
-    with pytest.raises(ValueError, match="redact"):
-        PromptInjectionGuard(mode="redact")
+    with pytest.raises(ValueError, match="blank"):
+        PromptInjectionGuard(mode="blank")

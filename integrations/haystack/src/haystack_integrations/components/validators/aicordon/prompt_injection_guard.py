@@ -5,7 +5,8 @@ decides comes from `aicordon.guard.DialogueGuard`; what lives here is the transl
 Haystack's types and its contract — nothing else, so the same policy serves the other frameworks
 unchanged.
 
-    pipe.add_component("guard", PromptInjectionGuard())          # mode="drop" by default
+    pipe.add_component("guard", PromptInjectionGuard(mode="drop"))   # passthrough is the default,
+    #                                                                  and then `blocked` never fires
     pipe.connect("prompt.messages", "guard.messages")
     pipe.connect("guard.messages", "llm.messages")               # the model is called on this path
     pipe.connect("guard.blocked", "refusal.messages")            # and not on this one
@@ -25,7 +26,7 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Any
 
-from aicordon.guard import DEFAULT_ROLES, DialogueGuard
+from aicordon.guard import DEFAULT_ROLES, PASSTHROUGH, DialogueGuard
 from haystack import component, default_from_dict, default_to_dict, logging
 from haystack.dataclasses import ChatMessage
 
@@ -41,9 +42,11 @@ PART_SEPARATOR = "\n\n"
 class PromptInjectionGuard:
     """Decides for the exchange as a whole, not message by message.
 
-    :param mode: `drop` routes a flagged exchange to `blocked` instead of to the model; `annotate`
-        lets everything through with the finding in each read message's metadata, for a prompt or a
-        downstream router to act on; `fail` raises `InjectionFound`.
+    :param mode: `passthrough`, the default, lets everything through with the finding in each read
+        message's metadata, for a prompt or a downstream router to act on; `drop` routes a flagged
+        exchange to `blocked` instead of to the model; `fail` raises `InjectionFound`. The default
+        does not decide for you: a component that stops answering users the moment it is wired in
+        is as much of a surprise as one that silently edits a document.
     :param roles: role name to rule set — `dpi` for a typed request, `ipi` for material. Defaults to
         `{"user": "dpi"}`. `tool` is left out on purpose: a tool result is material, but it reads
         like agent prompts and code, where the `ipi` rules raise eight times the alarms they raise
@@ -51,7 +54,7 @@ class PromptInjectionGuard:
     :param meta_prefix: prefix for the metadata keys written on each message that was read.
     """
 
-    def __init__(self, mode: str = "drop", roles: dict[str, str] | None = None,
+    def __init__(self, mode: str = PASSTHROUGH, roles: dict[str, str] | None = None,
                  meta_prefix: str = "picket") -> None:
         # Only strings and plain dicts here: Haystack requires init parameters to be
         # JSON-serialisable so that a pipeline can be saved and loaded. The detector is built in
@@ -83,7 +86,7 @@ class PromptInjectionGuard:
         verdict = self._guard.decide([(m.role.value, self._text(m)) for m in messages])
         if verdict.flagged:
             # Logged through the host's logger, at a level the host controls: "write it to the log"
-            # is not a mode — it is wanted under `drop` and under `annotate` alike.
+            # is not a mode — it is wanted under `drop` and under `passthrough` alike.
             logger.warning("prompt injection in a turn: {threats}, action {mode}",
                            threats=", ".join(verdict.threats), mode=self.mode)
         # Copies, never the inputs: the same list can be connected to a second branch of the

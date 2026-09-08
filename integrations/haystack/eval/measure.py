@@ -3,7 +3,7 @@
 WHAT IS MEASURED, AND WHY NOT RECALL. The detector's recall is already published and does not need
 restating here. The question an integration has to answer is different: of the payloads that were
 planted in the documents you ingest, how many end up sitting in the vector store, where a retriever
-can hand them to a model. That is a property of the whole pipeline — detector, redaction policy,
+can hand them to a model. That is a property of the whole pipeline — detector, editing policy,
 splitter — and it is what changes when the component is inserted.
 
 Ground truth is exact: the corpus records `inj_span`, so the payload is a known slice of the
@@ -78,14 +78,15 @@ def survival(payload: str, indexed: str) -> float:
     match = SequenceMatcher(None, p, indexed, autojunk=False).find_longest_match(0, len(p), 0,
                                                                                 len(indexed))
     # A run shorter than this is language, not payload: any two English texts share "of the" and
-    # counting that as a surviving fragment would make redaction look worse than it is.
+    # counting that as a surviving fragment would make the cut look worse than it is.
     return match.size / len(p) if match.size >= 25 else 0.0
 
 
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--docs", type=int, default=2000, help="positives; as many clean ones")
-    ap.add_argument("--mode", default="redact", choices=("redact", "drop", "annotate"))
+    ap.add_argument("--mode", default="mask", choices=("mask", "blank", "drop", "passthrough"))
+    ap.add_argument("--rows", metavar="PATH", help="also write the per-document rows there")
     ap.add_argument("--data", type=Path, default=DATA,
                     help="Quadrat-IPI data directory (positives.jsonl, negatives.jsonl)")
     # A slice along the goal axis. A separate number for `disclose` is not fitting but the answer to
@@ -146,9 +147,16 @@ def main() -> int:
         "payload_gone_after": gone_after,
         "clean_dropped": dropped_clean, "clean_trimmed": trimmed_clean,
         "seconds_baseline": round(base_s, 1), "seconds_guarded": round(guard_s, 1),
-        "rows": rows,
     }
-    (HERE / f"result-{a.mode}{'-' + a.action.replace(',', '_') if a.action else ''}.json").write_text(json.dumps(out, ensure_ascii=False, indent=1))
+    # The summary is what the repository keeps, the same as every other measurement here. The
+    # per-document rows are two hundred times its size and are read by nobody: what a report quotes
+    # is the ten numbers above, and a slice is a rerun with `--action`. `--rows` writes them
+    # somewhere of your choosing when a question actually needs them.
+    (HERE / f"result-{a.mode}{'-' + a.action.replace(',', '_') if a.action else ''}.json").write_text(
+        json.dumps(out, ensure_ascii=False, indent=1))
+    if a.rows:
+        Path(a.rows).write_text(json.dumps(rows, ensure_ascii=False, indent=1))
+        print(f"rows: {len(rows)} written to {a.rows}", flush=True)
 
     n = len(rows)
     print(f"\npayload reached the store intact: {intact_before}/{n} ({intact_before/n:.1%}) without"

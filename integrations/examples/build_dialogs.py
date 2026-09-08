@@ -131,7 +131,7 @@ def build() -> int:
     guard = DialogueGuard(mode="drop")     # drop: a flagged exchange is not sent to the model
     guard.warm_up()
     # The bare turn detector, to prove the wrapper's verdict matches it on the same text.
-    bare = TurnGuard(mode="annotate")
+    bare = TurnGuard(mode="passthrough")
     bare.warm_up()
 
     dialogues: list[dict] = []
