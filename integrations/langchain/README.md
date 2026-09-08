@@ -30,7 +30,7 @@ from langchain_community.document_loaders import DirectoryLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 docs = DirectoryLoader("kb/").load()
-docs = PromptInjectionFilter(mode="redact").transform_documents(docs)   # <- here
+docs = PromptInjectionFilter(mode="mask").transform_documents(docs)     # <- here
 chunks = RecursiveCharacterTextSplitter().split_documents(docs)
 store.add_documents(chunks)
 ```
@@ -42,12 +42,24 @@ embeddings and the store at once, with no offsets to reconcile across chunk boun
 
 | `mode` | the document | the length |
 |---|---|---|
-| `annotate` | indexed unchanged, the finding recorded in metadata | unchanged |
+| `passthrough` *(default)* | indexed unchanged, the finding recorded in metadata | unchanged |
 | `blank` | every character of the block becomes `blank_char` (default `*`) | **preserved** |
 | `mask` | the block is replaced by `mask_with` | changes |
-| `redact` *(default)* | the block is cut out | changes |
 | `drop` | not indexed | — |
 | `fail` | the run stops on the first finding | — |
+
+**Why the default edits nothing.** Installing a package should not start rewriting your documents,
+and it should not start refusing to answer people either. The two failures are not symmetric: a
+missed injection is what the layer behind this one is for, while a sentence taken out of a clean
+document is gone without a trace and the answer built on what is left still reads fine. Measured,
+that costs one clean document in 2000 touched and a median 12.7% of the length of a flagged one.
+
+Say it plainly: **in the default mode nothing is prevented.** The entry points read and report, and
+the injection still reaches the model. Protection starts when you name a mode. Look at what fires on
+your own material, then choose: `mode="mask"` at ingest, `mode="drop"` on the request side.
+
+No mode shortens a document silently: `blank` keeps the length and `mask` leaves its marker where
+the block was. To cut a block out with nothing in its place, say so - `mask_with=""`.
 
 `blank` is for pipelines that carry offsets, page maps or diffs downstream and cannot have a
 document change length under them.
@@ -73,7 +85,7 @@ from langchain.agents import create_agent
 agent = create_agent(
     model="openai:gpt-5.5",
     tools=[fetch_page, read_ticket],
-    middleware=[ToolOutputFilter(mode="redact")],           # every tool, or tools=["fetch_page"]
+    middleware=[ToolOutputFilter(mode="mask")],             # every tool, or tools=["fetch_page"]
 )
 ```
 
@@ -94,14 +106,14 @@ from aicordon_langchain import PromptInjectionGuard
 agent = create_agent(
     model="openai:gpt-5.5",
     tools=[fetch_page],
-    middleware=[PromptInjectionGuard()],                    # mode="drop" by default
+    middleware=[PromptInjectionGuard(mode="drop")],         # without it the turn goes on, marked
 )
 ```
 
-On a flagged turn the model is **not called**, the refused turn is taken out of the conversation so
-that the next turn is not assembled with it, and the agent answers with the guard's own message
-instead — `mode="annotate"` calls the model and records the finding on the answer, `mode="fail"`
-raises `InjectionFound`. What is read is the request: by default the user's turns, and nothing else.
+In `drop` mode a flagged turn does **not** reach the model, the refused turn is taken out of the
+conversation so that the next turn is not assembled with it, and the agent answers with the guard's
+own message instead. The default, `mode="passthrough"`, calls the model and records the finding on the
+answer; `mode="fail"` raises `InjectionFound`. What is read is the request: by default the user's turns, and nothing else.
 The system message is the operator's own text, and an operator who wants to steer their own model
 does not need an injection to do it.
 
@@ -112,7 +124,7 @@ history.
 Both middlewares in one agent, each on its own side:
 
 ```python
-middleware=[PromptInjectionGuard(), ToolOutputFilter(mode="redact")]
+middleware=[PromptInjectionGuard(mode="drop"), ToolOutputFilter(mode="mask")]
 ```
 
 ## The request in a chain
@@ -127,7 +139,7 @@ A link in a chain returns a value and the next link is the model; there is no ar
 it declines the call and answers instead. So it raises, or it marks and lets the chain decide:
 
 ```python
-guard = PromptInjectionValidator(mode="annotate")
+guard = PromptInjectionValidator(mode="passthrough")
 chain = prompt | RunnableBranch((guard.flagged, refusal), model)
 ```
 
@@ -140,8 +152,8 @@ guard in the loop that appends to it rather than passing it an unchecked history
 
 ## Nothing is rewritten on the request side
 
-`PromptInjectionGuard` and `PromptInjectionValidator` accept `annotate`, `drop` and `fail` only; ask
-either for `redact` and it raises. Material can lose a paragraph and stay usable. Take a clause out
+`PromptInjectionGuard` and `PromptInjectionValidator` accept `passthrough`, `drop` and `fail` only; ask
+either for an editing mode and it raises. Material can lose a paragraph and stay usable. Take a clause out
 of what somebody asked for and the model answers a question nobody put, with the user seeing an
 answer rather than a notice — and the cut itself is fitted to the wrong shape, because a typed
 attack is not spliced into a turn, it *is* the turn.
@@ -167,7 +179,7 @@ Not the detector's recall — that ships with the detector — but what your lin
 package in it and without.
 
 **Material at ingest.** [Quadrat-IPI v1.0.1](https://huggingface.co/datasets/mihailgribov/quadrat-ipi),
-2000 injected and 2000 clean documents, `mode="redact"`; how much of a planted payload still reaches
+2000 injected and 2000 clean documents, `mode="mask"`; how much of a planted payload still reaches
 the splitter:
 
 | | whole corpus | injections that ask the model to **reveal** something |

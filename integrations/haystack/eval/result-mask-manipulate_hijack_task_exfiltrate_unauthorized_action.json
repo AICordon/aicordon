@@ -1,0 +1,12 @@
+{
+ "mode": "mask",
+ "n_injected": 1500,
+ "n_clean": 1500,
+ "payload_intact_before": 1500,
+ "payload_intact_after": 1349,
+ "payload_gone_after": 138,
+ "clean_dropped": 0,
+ "clean_trimmed": 1,
+ "seconds_baseline": 0.5,
+ "seconds_guarded": 24.3
+}

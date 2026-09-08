@@ -20,7 +20,7 @@ DOCS = [
 
 
 def main() -> None:
-    filt = PromptInjectionFilter(mode="redact")
+    filt = PromptInjectionFilter(mode="mask")
     kept, rejected = filt.split(DOCS)
 
     for doc in kept:

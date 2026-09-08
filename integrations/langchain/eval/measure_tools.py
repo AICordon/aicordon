@@ -10,7 +10,7 @@ Ground truth is exact: the corpus records `inj_span`, so the payload is a known 
 CLEAN PAGES GO THROUGH THE SAME LOOP. A filter that cut every tool result in half would score
 perfectly on the payloads and be useless, so the damage to clean output is counted beside it.
 
-    python eval/measure_tools.py --docs 1000 --mode redact
+    python eval/measure_tools.py --docs 1000 --mode mask
 """
 from __future__ import annotations
 
@@ -78,8 +78,8 @@ def main() -> int:
     logging.getLogger("aicordon_langchain.middleware").setLevel(logging.ERROR)
     ap = argparse.ArgumentParser()
     ap.add_argument("--docs", type=int, default=1000, help="injected pages; as many clean ones")
-    ap.add_argument("--mode", default="redact", choices=("redact", "blank", "mask", "drop",
-                                                         "annotate"))
+    ap.add_argument("--mode", default="mask", choices=("mask", "blank", "drop",
+                                                         "passthrough"))
     ap.add_argument("--data", type=Path, default=QUADRAT, help="Quadrat-IPI data directory")
     ap.add_argument("--action", help="slice by the goal of the injection, e.g. disclose")
     ap.add_argument("--json", default="result-tools.json")

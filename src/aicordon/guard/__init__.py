@@ -11,7 +11,9 @@ lines of policy would be a maintenance cost with nothing on the other side. The 
 under `integrations/` depend on `aicordon` alone and import this module.
 """
 from .dialogue import DEFAULT_ROLES, DialogueGuard, ExchangeVerdict, TurnGuard
-from .guard import MODES, NON_EDITING_MODES, InjectionFound, InjectionGuard, Verdict
+from .guard import (EDITING_MODES, MODES, NON_EDITING_MODES, PASSTHROUGH, InjectionFound,
+                    InjectionGuard, Verdict)
 
 __all__ = ["InjectionGuard", "TurnGuard", "DialogueGuard", "InjectionFound", "Verdict",
-           "ExchangeVerdict", "MODES", "NON_EDITING_MODES", "DEFAULT_ROLES"]
+           "ExchangeVerdict", "MODES", "NON_EDITING_MODES", "EDITING_MODES", "PASSTHROUGH",
+           "DEFAULT_ROLES"]

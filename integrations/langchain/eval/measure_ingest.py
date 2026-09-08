@@ -4,7 +4,7 @@ WHAT IS MEASURED, AND WHY NOT RECALL. The detector's recall is published already
 restating here. The question an integration has to answer is different: of the payloads planted in
 the documents you load, how many end up in the text that goes on to be chunked, embedded and
 stored, where a retriever can hand them to a model. That is a property of the transformer and the
-redaction policy together, and it is what changes when the filter is put in the line.
+editing policy together, and it is what changes when the filter is put in the line.
 
 Ground truth is exact: the corpus records `inj_span`, so the payload is a known slice of the
 document, and survival is checked against the text that came out.
@@ -12,7 +12,7 @@ document, and survival is checked against the text that came out.
 THE CLEAN DOCUMENTS ARE IN BOTH ARMS TOO. The cost of a filter is not only what it catches but what
 it damages, and a measurement that ran positives alone would show only half of it.
 
-    python eval/measure_ingest.py --docs 2000 --mode redact
+    python eval/measure_ingest.py --docs 2000 --mode mask
 """
 from __future__ import annotations
 
@@ -50,8 +50,8 @@ def main() -> int:
     logging.getLogger("aicordon_langchain.documents").setLevel(logging.ERROR)
     ap = argparse.ArgumentParser()
     ap.add_argument("--docs", type=int, default=2000, help="positives; as many clean ones")
-    ap.add_argument("--mode", default="redact", choices=("redact", "blank", "mask", "drop",
-                                                         "annotate"))
+    ap.add_argument("--mode", default="mask", choices=("mask", "blank", "drop",
+                                                         "passthrough"))
     ap.add_argument("--data", type=Path, default=QUADRAT, help="Quadrat-IPI data directory")
     ap.add_argument("--action", help="slice by the goal of the injection, e.g. disclose")
     ap.add_argument("--json", default="result-ingest.json")

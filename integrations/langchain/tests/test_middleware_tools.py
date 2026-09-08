@@ -41,11 +41,11 @@ def run(tools, middleware, name="fetch"):  # noqa: ANN001, ANN201
 
 
 def test_the_injection_is_cut_before_the_model_sees_the_result() -> None:
-    model, results = run([fetch], ToolOutputFilter(mode="redact"))
+    model, results = run([fetch], ToolOutputFilter(mode="mask"))
     assert "forward the API key" not in results[0].content
     assert "Revenue grew 4%." in results[0].content
     assert results[0].response_metadata["ipi_flagged"] is True
-    assert results[0].response_metadata["ipi_action"] == "redact"
+    assert results[0].response_metadata["ipi_action"] == "mask"
     # The control: what the model was given on its second call is the cut text, not the original.
     second_call = "".join(str(m.content) for m in model.calls[1])
     assert "forward the API key" not in second_call
@@ -62,7 +62,7 @@ def test_a_clean_result_is_marked_read_and_clean() -> None:
 def test_a_tool_that_answers_with_a_command_is_read_too() -> None:
     """The trap this exists for: a wrapper matching on `ToolMessage` alone lets exactly these tools
     through unread — the text still reaches the model, and nothing records that nobody looked."""
-    _model, results = run([state_fetch], ToolOutputFilter(mode="redact"), name="state_fetch")
+    _model, results = run([state_fetch], ToolOutputFilter(mode="mask"), name="state_fetch")
     assert results, "the Command carried no tool message into state"
     assert "forward the API key" not in results[0].content
     assert results[0].response_metadata["ipi_flagged"] is True
@@ -89,7 +89,7 @@ def test_fail_stops_the_run() -> None:
 
 
 def test_only_the_named_tools_are_read() -> None:
-    _model, results = run([fetch], ToolOutputFilter(mode="redact", tools=["other_tool"]))
+    _model, results = run([fetch], ToolOutputFilter(mode="mask", tools=["other_tool"]))
     assert "forward the API key" in results[0].content
     assert "ipi_flagged" not in results[0].response_metadata     # not read, and it says so
 
@@ -97,7 +97,7 @@ def test_only_the_named_tools_are_read() -> None:
 def test_content_blocks_are_read_block_by_block() -> None:
     """Tool output can arrive as a list of blocks. An offset into the joined text points nowhere
     once they are apart, so each text block is read on its own and the rest passes untouched."""
-    filt = ToolOutputFilter(mode="redact")
+    filt = ToolOutputFilter(mode="mask")
     message = ToolMessage(content=[{"type": "text", "text": INJECTED_DOC},
                                    {"type": "image", "url": "http://example.invalid/x.png"}],
                           name="fetch", tool_call_id="c1")
@@ -115,7 +115,7 @@ async def test_the_filter_holds_under_ainvoke() -> None:
         AIMessage(content="", tool_calls=[{"name": "fetch", "args": {"url": "u"}, "id": "c1"}]),
         AIMessage(content="done"))
     out = await create_agent(model=model, tools=[fetch],
-                             middleware=[ToolOutputFilter(mode="redact")]).ainvoke(
+                             middleware=[ToolOutputFilter(mode="mask")]).ainvoke(
         {"messages": [HumanMessage(content="go")]})
     results = [m for m in out["messages"] if isinstance(m, ToolMessage)]
     assert "forward the API key" not in results[0].content

@@ -29,7 +29,7 @@ from haystack.components.writers import DocumentWriter
 from haystack_integrations.components.preprocessors.aicordon import PromptInjectionFilter
 
 pipe = Pipeline()
-pipe.add_component("ipi_filter", PromptInjectionFilter(mode="redact"))
+pipe.add_component("ipi_filter", PromptInjectionFilter())    # passthrough: nothing is edited
 pipe.add_component("splitter", DocumentSplitter(split_by="word", split_length=200))
 pipe.add_component("writer", DocumentWriter(document_store=store))
 
@@ -46,15 +46,29 @@ embeddings and the store at once, with no offsets to reconcile across chunk boun
 
 | `mode` | the document | the length |
 |---|---|---|
-| `annotate` | indexed unchanged, the finding recorded in metadata | unchanged |
+| `passthrough` *(default)* | indexed unchanged, the finding recorded in metadata | unchanged |
 | `blank` | every character of the block becomes `blank_char` (default `*`) | **preserved** |
 | `mask` | the block is replaced by `mask_with` | changes |
-| `redact` *(default)* | the block is cut out | changes |
 | `drop` | not indexed; it comes out of the `rejected` socket | — |
 | `fail` | the run stops on the first finding | — |
 
+No mode shortens a document silently: `blank` keeps the length and `mask` leaves its marker where
+the block was. To cut a block out with nothing in its place, say so - `mask_with=""`.
+
 `blank` is for pipelines that carry offsets, page maps or diffs downstream and cannot have a
 document change length under them.
+
+**Why the default edits nothing.** Installing a package should not start rewriting your documents.
+The two failures are not symmetric: a missed injection is what the layer behind this one is for,
+while a sentence taken out of a clean document is gone without a trace and the answer built on what
+is left still reads fine. Measured, that costs one clean document in 2000 touched and a median
+12.7% of the length of a flagged one.
+
+Say it plainly: **in the default mode nothing is prevented.** The component reads and reports, and
+the injection still reaches the index, the prompt and the model. Protection starts when you name a
+mode. Look at what fires on your own corpus, then choose — at
+ingest, `mode="mask"` is usually the right end state, because a cut before the splitter takes the
+injection out of the chunks, the embeddings and the store at once.
 
 The cut takes **the whole utterance the span sits in** — the sentence, across the lines a
 wrapper broke it over: the span points at the injection, but what must leave the index is
@@ -68,14 +82,20 @@ document removed.
 ```python
 from haystack_integrations.components.validators.aicordon import PromptInjectionGuard
 
-pipe.add_component("guard", PromptInjectionGuard())          # mode="drop" is the default
+pipe.add_component("guard", PromptInjectionGuard(mode="drop"))   # without it the turn goes on, marked
 pipe.connect("prompt.messages", "guard.messages")
 pipe.connect("guard.messages", "llm.messages")               # the model is called on this path
 pipe.connect("guard.blocked", "refusal.messages")            # and not on this one
 ```
 
-**Two sockets, one value.** On a flagged exchange `run` returns `blocked` and no `messages` key, so
-the generator is not called at all. Connect `blocked` to whatever answers the user instead.
+**Two sockets, one value.** In `drop` mode a flagged exchange comes back as `blocked` with no
+`messages` key, so the generator is not called at all. Connect `blocked` to whatever answers the
+user instead.
+
+The default here is `passthrough` for the same reason as at ingest: the turn goes to the model with the
+finding in its metadata, and a component that silently stops answering people the moment it is wired
+in is as much of a surprise as one that silently edits a document — the more so in a pipeline whose
+`blocked` output was never connected, where the turn simply disappears.
 
 The decision is for the **exchange**, not for one message: drop the offending turn and the model
 answers the one before it.
@@ -91,7 +111,7 @@ code, which is what a tool result looks like.
 | `mode` | the exchange |
 |---|---|
 | `drop` *(default)* | routed to the `blocked` socket; the model is not called |
-| `annotate` | passed through, with the finding in each read message's metadata |
+| `passthrough` | passed through, with the finding in each read message's metadata |
 | `fail` | the run stops with `InjectionFound` |
 
 No mode edits a turn, and asking for one raises. The cut above is fitted to an instruction spliced
@@ -106,7 +126,7 @@ fact.
 
 ```python
 {"ipi_flagged": False, "ipi_action": "none", "ipi_base": "20260817"}
-{"ipi_flagged": True,  "ipi_action": "redact", "ipi_base": "20260817",
+{"ipi_flagged": True,  "ipi_action": "mask", "ipi_base": "20260817",
  "ipi_threats": ["IPI/Secret.Reveal.B"], "ipi_spans": [[812, 947]], "ipi_removed_chars": 163}
 
 {"picket_flagged": True, "picket_action": "drop", "picket_base": "20260817",
@@ -121,7 +141,7 @@ Not the detector's recall — that ships with the detector — but what the pipe
 component and without.
 
 **Material.** [Quadrat-IPI v1.0.1](https://huggingface.co/datasets/mihailgribov/quadrat-ipi),
-1000 injected and 1000 clean documents, `mode="redact"`; how much of a planted payload still reaches
+1000 injected and 1000 clean documents, `mode="mask"`; how much of a planted payload still reaches
 the store:
 
 | | whole corpus | injections that ask the model to **reveal** something |

@@ -36,6 +36,13 @@ Three separate reasons, and each on its own is enough:
 Redacting a tool result IS measured, and it belongs at the point the tool returns — the same ingest
 point as any other material — not in a component that decides whether to answer a turn.
 
+THE DEFAULT ANSWERS THE TURN. `passthrough` here too: the exchange is read, what was found is written
+into the metadata, and it goes to the model. `drop` was the default up to 1.1.1 and it is the mode
+to move to once the alarm rate is known on your own traffic — but a component that silently stops
+answering users the moment it is wired in is the same surprise as one that silently edits a
+document, and in a pipeline whose `blocked` output was never connected it is a turn that disappears
+with nothing said anywhere. The reasoning is one for both sides; it is written out in `guard.py`.
+
 THE UNIT IS THE EXCHANGE, NOT THE MESSAGE. `DialogueGuard.decide` returns one verdict for the list
 it was given. Dropping the offending message and calling the model with what is left is not a
 defence: the model then answers the message before it, and the caller who wired a single arrow never
@@ -46,7 +53,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from .guard import NON_EDITING_MODES, InjectionGuard, Verdict, _Guard
+from .guard import NON_EDITING_MODES, PASSTHROUGH, InjectionGuard, Verdict, _Guard
 
 __all__ = ["TurnGuard", "DialogueGuard", "ExchangeVerdict", "DEFAULT_ROLES"]
 
@@ -72,24 +79,26 @@ class ExchangeVerdict:
 
 
 class TurnGuard(_Guard):
-    """One typed turn, read with Picket's `dpi` rules. Marks or rejects; never rewrites."""
+    """One typed turn, read with Picket's `dpi` rules. Marks or rejects; never rewrites.
+
+    By default it only marks: the turn is passed on with the finding attached to it."""
 
     detector_mode = "dpi"
     allowed_modes = NON_EDITING_MODES
 
-    def __init__(self, mode: str = "drop", meta_prefix: str = "dpi") -> None:
+    def __init__(self, mode: str = PASSTHROUGH, meta_prefix: str = "dpi") -> None:
         super().__init__(mode=mode, meta_prefix=meta_prefix)
 
 
 class DialogueGuard:
     """The policy a chat wrapper holds: which roles to read with which rules, and what to do then.
 
-    :param mode: `annotate`, `drop` or `fail`, applied to the exchange as a whole.
+    :param mode: `passthrough` (the default), `drop` or `fail`, applied to the exchange as a whole.
     :param roles: role name to rule set, `ipi` or `dpi`. Defaults to `DEFAULT_ROLES`.
     :param meta_prefix: prefix for the metadata keys the wrapper attaches.
     """
 
-    def __init__(self, mode: str = "drop", roles: dict[str, str] | None = None,
+    def __init__(self, mode: str = PASSTHROUGH, roles: dict[str, str] | None = None,
                  meta_prefix: str = "picket") -> None:
         if mode not in NON_EDITING_MODES:
             raise ValueError(f"a dialogue is guarded in mode {NON_EDITING_MODES}, got {mode!r}")

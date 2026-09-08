@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.2.0 — 2026-09-08
+
+Requires `aicordon>=1.2.0`. **Both components now default to `mode="passthrough"`**: they read the text,
+record what they found beside it, and pass it on untouched. They used to act by default — the filter
+edited the document, the guard held a flagged exchange back.
+
+Breaking for a pipeline that named no mode, and for nobody else: documents are no longer edited, and
+a flagged exchange now reaches the generator with the finding in its metadata instead of coming out
+of `blocked`. Both behaviours are one argument away:
+
+    PromptInjectionFilter(mode="mask")
+    PromptInjectionGuard(mode="drop")
+
+The reasoning is in the detector's own changelog under 1.2.0, along with the modes and what each
+does. Nothing about detection changed: the base, the rules and the numbers below are the same.
+
+Watch the serialisation when you change a mode — a pipeline saved to YAML carries the mode
+explicitly, but a component built before this release and reloaded after it reads back the new
+default. See `NOTES.md`.
+
 ## 0.1.1 — 2026-08-26
 
 Requires `aicordon>=1.1.1`, and that is the whole release: the wrapper is unchanged, the policy it

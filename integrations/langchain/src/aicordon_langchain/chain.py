@@ -17,7 +17,7 @@ imitated, and the two ways to have it are named:
     chain = prompt | PromptInjectionValidator(mode="fail") | model
 
     # or branch, and answer for yourself
-    guard = PromptInjectionValidator(mode="annotate")
+    guard = PromptInjectionValidator(mode="passthrough")
     chain = prompt | RunnableBranch((guard.flagged, refusal), model)
 
 In an AGENT the same decision has a proper home — `PromptInjectionGuard` skips the model call and
@@ -28,7 +28,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from aicordon.guard import DEFAULT_ROLES, DialogueGuard
+from aicordon.guard import DEFAULT_ROLES, PASSTHROUGH, DialogueGuard
 from langchain_core.messages import BaseMessage, convert_to_messages
 from langchain_core.prompt_values import ChatPromptValue, PromptValue
 from langchain_core.runnables import Runnable
@@ -41,20 +41,21 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 #: The modes a chain can honour. `drop` is missing on purpose — see the module docstring.
-CHAIN_MODES = ("annotate", "fail")
+CHAIN_MODES = ("passthrough", "fail")
 
 
 class PromptInjectionValidator(Runnable[Any, Any]):
     """Read the request with Picket's `dpi` rules; pass it on or raise.
 
-    :param mode: `fail` raises `InjectionFound`; `annotate` records the finding on each message it
-        read and lets everything through, for a `RunnableBranch` or a later link to act on.
+    :param mode: `passthrough`, the default, records the finding on each message it read and lets
+        everything through, for a `RunnableBranch` or a later link to act on; `fail` raises
+        `InjectionFound`.
     :param roles: role name to rule set — `dpi` for a typed request, `ipi` for material. Defaults to
         `{"user": "dpi"}`.
-    :param meta_prefix: prefix for the keys written into `additional_kwargs` in `annotate` mode.
+    :param meta_prefix: prefix for the keys written into `additional_kwargs` in `passthrough` mode.
     """
 
-    def __init__(self, mode: str = "fail", roles: dict[str, str] | None = None,
+    def __init__(self, mode: str = PASSTHROUGH, roles: dict[str, str] | None = None,
                  meta_prefix: str = "picket") -> None:
         super().__init__()
         if mode not in CHAIN_MODES:
@@ -105,7 +106,7 @@ class PromptInjectionValidator(Runnable[Any, Any]):
     def invoke(self, input: Any, config: RunnableConfig | None = None, **kwargs: Any) -> Any:
         """Pass the request on. In `fail` mode `InjectionFound` comes out of here instead.
 
-        The object returned is the object given, unchanged. In `annotate` mode the finding goes into
+        The object returned is the object given, unchanged. In `passthrough` mode the finding goes into
         the messages' `additional_kwargs` where the input carried messages to write on; a bare
         string has nowhere to carry it and gets a log line only, which is why `flagged` exists.
         """
@@ -113,7 +114,7 @@ class PromptInjectionValidator(Runnable[Any, Any]):
         if verdict.flagged:
             logger.warning("prompt injection in the request: %s, action %s",
                            ", ".join(verdict.threats), self.mode)
-        if self.mode == "annotate" and messages and not isinstance(input, str):
+        if self.mode == "passthrough" and messages and not isinstance(input, str):
             return self._annotated(input, verdict, messages)
         return input
 

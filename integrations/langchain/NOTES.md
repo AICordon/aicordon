@@ -66,7 +66,7 @@ the behaviour each describes is covered by a test in `tests/`.
 
 3. **A message copy without the original `id` is appended, not replaced.** The `messages` channel
    reduces by id. Annotating a turn by building a fresh `HumanMessage` leaves BOTH in the list, so
-   the model is sent the turn twice — and in a redacting design it would be sent the clean copy and
+   the model is sent the turn twice — and in a design that edited the turn it would be sent the clean copy and
    the original side by side. Measured: with the id, two messages in the final state; without it,
    three. `model_copy(update=...)` keeps the id, so that is what we use everywhere.
 

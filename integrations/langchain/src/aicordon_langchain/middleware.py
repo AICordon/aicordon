@@ -3,7 +3,7 @@
     agent = create_agent(
         model="openai:gpt-5.5",
         tools=[fetch_page],
-        middleware=[PromptInjectionGuard(), ToolOutputFilter(mode="redact")],
+        middleware=[PromptInjectionGuard(), ToolOutputFilter()],   # passthrough, both of them
     )
 
 `PromptInjectionGuard` reads the REQUEST — the turns about to be sent — with Picket's `dpi` rules,
@@ -31,7 +31,7 @@ import logging
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any
 
-from aicordon.guard import DEFAULT_ROLES, DialogueGuard, InjectionGuard
+from aicordon.guard import DEFAULT_ROLES, PASSTHROUGH, DialogueGuard, InjectionGuard
 from langchain.agents.middleware import AgentMiddleware, ExtendedModelResponse, ModelResponse
 from langchain_core.messages import AIMessage, RemoveMessage, ToolMessage
 from langgraph.types import Command
@@ -61,8 +61,10 @@ def _new_since_model_spoke(messages: list[Any]) -> list[int]:
 class PromptInjectionGuard(AgentMiddleware):
     """The request side: decide whether the model is called at all.
 
-    :param mode: `drop` answers in the model's place and does not call it; `annotate` calls it and
-        records the finding on the answer; `fail` raises `InjectionFound`.
+    :param mode: `passthrough`, the default, calls the model and records the finding on the answer;
+        `drop` answers in the model's place and does not call it; `fail` raises `InjectionFound`.
+        The default does not decide for you: a middleware that stops answering users the moment it
+        is added is as much of a surprise as one that silently edits a document.
     :param roles: role name to rule set — `dpi` for a typed request, `ipi` for material. Defaults to
         `{"user": "dpi"}`. `tool` is left out on purpose: a tool result is material, but it reads
         like agent prompts and code, where the `ipi` rules raise eight times the alarms they raise
@@ -73,7 +75,7 @@ class PromptInjectionGuard(AgentMiddleware):
         this call. See below for why the default is to forget it.
     """
 
-    def __init__(self, mode: str = "drop", roles: dict[str, str] | None = None,
+    def __init__(self, mode: str = PASSTHROUGH, roles: dict[str, str] | None = None,
                  meta_prefix: str = "picket",
                  refusal: str = "This request was not sent to the model: it carries a prompt "
                                 "injection.",
@@ -165,7 +167,7 @@ class PromptInjectionGuard(AgentMiddleware):
     def _mark(self, response: Any, verdict: Any, meta: dict[str, Any]) -> Any:
         """Record what was found on the answer the model gave.
 
-        `annotate` does not touch the request — nothing on this side ever does — so the only place
+        `passthrough` does not touch the request — nothing on this side ever does — so the only place
         left to write is the answer. `response_metadata` under our prefix, on a copy: the fields say
         what was found in the REQUEST, which is why they are named for it.
         """
@@ -223,7 +225,8 @@ class PromptInjectionGuard(AgentMiddleware):
 class ToolOutputFilter(AgentMiddleware):
     """The material side: read what a tool handed back, with the `ipi` rules, before the model does.
 
-    :param mode: `annotate`, `blank`, `mask`, `redact`, `drop` or `fail`. See `withheld` for what
+    :param mode: `passthrough` (the default, which edits nothing), `blank`, `mask`, `drop` or `fail`;
+        `mask_with=""` cuts the block out with nothing in its place. See `withheld` for what
         `drop` means where a tool result cannot simply go missing.
     :param tools: names of the tools to read. `None` reads every one of them.
     :param meta_prefix: prefix for the keys written into the tool message's `response_metadata`.
@@ -232,7 +235,7 @@ class ToolOutputFilter(AgentMiddleware):
     :param withheld: what the model is given in `drop` mode.
     """
 
-    def __init__(self, mode: str = "redact", tools: list[str] | None = None,
+    def __init__(self, mode: str = PASSTHROUGH, tools: list[str] | None = None,
                  meta_prefix: str = "ipi", blank_char: str = "*",
                  mask_with: str = "[prompt injection removed]",
                  withheld: str = "[tool output withheld: prompt injection]") -> None:

@@ -4,7 +4,8 @@ The transformer sits between the loader and the splitter of an ingest, which in 
 of your own code rather than a pipeline object:
 
     docs = TextLoader("kb.md").load()
-    docs = PromptInjectionFilter(mode="redact").transform_documents(docs)
+    docs = PromptInjectionFilter().transform_documents(docs)              # passthrough by default
+    docs = PromptInjectionFilter(mode="mask").transform_documents(docs)    # or take it out
     chunks = RecursiveCharacterTextSplitter().split_documents(docs)
 
 Everything it decides comes from `aicordon.guard.InjectionGuard`; what lives here is the translation
@@ -16,7 +17,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from aicordon.guard import InjectionGuard
+from aicordon.guard import PASSTHROUGH, InjectionGuard
 from langchain_core.documents import BaseDocumentTransformer, Document
 
 if TYPE_CHECKING:
@@ -38,11 +39,12 @@ class PromptInjectionFilter(BaseDocumentTransformer):
     In every other mode the two calls are the same thing, `rejected` being empty.
     """
 
-    def __init__(self, mode: str = "redact", meta_prefix: str = "ipi", blank_char: str = "*",
+    def __init__(self, mode: str = PASSTHROUGH, meta_prefix: str = "ipi", blank_char: str = "*",
                  mask_with: str = "[prompt injection removed]") -> None:
         """Build the filter. The detector itself is not loaded until `warm_up()` or the first call.
 
-        :param mode: `annotate`, `blank`, `mask`, `redact`, `drop` or `fail`.
+        :param mode: `passthrough` (the default, which edits nothing), `blank`, `mask`, `drop` or
+            `fail`. `mask_with=""` is how a block is cut out with nothing in its place.
         :param meta_prefix: prefix for the keys written into `Document.metadata`.
         :param blank_char: the character `blank` mode fills the block with.
         :param mask_with: what `mask` mode puts in place of the block.
@@ -68,7 +70,7 @@ class PromptInjectionFilter(BaseDocumentTransformer):
             if verdict.flagged:
                 # Through the standard library logger under this module's name, at a level the host
                 # controls: "write it to the log" is not a mode — it is wanted under `drop` and
-                # under `annotate` alike.
+                # under `passthrough` alike.
                 logger.warning("prompt injection in a document at ingest: %s, action %s",
                                ", ".join(verdict.threats), self.mode)
             # A copy, never the input. The caller holds the list we were given and may well index
