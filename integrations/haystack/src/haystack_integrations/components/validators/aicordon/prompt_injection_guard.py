@@ -5,8 +5,7 @@ decides comes from `aicordon.guard.DialogueGuard`; what lives here is the transl
 Haystack's types and its contract — nothing else, so the same policy serves the other frameworks
 unchanged.
 
-    pipe.add_component("guard", PromptInjectionGuard())          # passthrough: the turn goes through
-    pipe.add_component("guard", PromptInjectionGuard(mode="drop"))   # or route it to `blocked`
+    pipe.add_component("guard", PromptInjectionGuard(mode="drop"))   # the default passes it on
     pipe.connect("prompt.messages", "guard.messages")
     pipe.connect("guard.messages", "llm.messages")               # the model is called on this path
     pipe.connect("guard.blocked", "refusal.messages")            # and not on this one
