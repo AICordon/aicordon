@@ -118,6 +118,24 @@ model call, so reading the whole history each time would re-bill the opening tur
 a loop. The tail after the last `AIMessage` is what is new; on the first call there is none, and the
 tail is the whole list — right for a run resumed with a history nobody has read yet.
 
+## Saving a chain: the trap Haystack has, and LangChain does not (2026-09-09)
+
+A Haystack pipeline saved to YAML without a `mode:` line comes back up in whatever the CURRENT
+default is — `to_dict` fills the gap from the signature — so an upgrade can quietly change what a
+saved pipeline does. That is written down on the Haystack side; the question of whether it repeats
+here had to be asked of LangChain rather than assumed.
+
+It does not. `PromptInjectionValidator` is a plain `Runnable`, not a `Serializable`, so `dumpd` puts
+`{"type": "not_implemented"}` where the node was and `loads` raises `NotImplementedError` on the way
+back. A chain carrying the validator still dumps — nothing crashes at save time — but it refuses to
+come back rather than coming back in a mode nobody chose. Loud is the right failure here, and it
+costs a round trip we do not currently need.
+
+The two middlewares and the document filter are not serialised by LangChain at all: an agent is
+assembled in code, so there is no saved form to drift.
+
+Checked in `../../../experiments/45_picket_direct/langchain_dialogue/stand.py`.
+
 ## What carries over to another framework
 
 The policy (`aicordon.guard`) carried over from Haystack unchanged: modes, cut boundaries, metadata,

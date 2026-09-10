@@ -1,12 +1,13 @@
 """Check the request on its way to the model in a chain that is not an agent.
 
-    guard = PromptInjectionValidator()          # mode="fail" by default
+    guard = PromptInjectionValidator(mode="fail")   # the default, `passthrough`, only marks
     chain = prompt | guard | model
 
-The validator is a `Runnable` that passes its input on untouched and raises `InjectionFound` when
-Picket's `dpi` rules fire on it. It accepts what a chat model accepts — a string, a `PromptValue`,
-or a list of messages — and returns the very object it was given, so it can be dropped into a chain
-anywhere ahead of the model without changing its types.
+The validator is a `Runnable` that passes its input on with its text untouched and records what
+Picket's `dpi` rules found on it; in `fail` mode it raises `InjectionFound` instead of returning. It
+accepts what a chat model accepts — a string, a `PromptValue`, or a list of messages — and gives
+back the same shape it was handed, so it can be dropped into a chain anywhere ahead of the model
+without changing its types.
 
 WHY IT ONLY MARKS OR RAISES. A `Runnable` in a chain has one way out: it returns a value, and the
 next link is the model. There is no arrangement in which it declines to call the model and answers
@@ -28,7 +29,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-from aicordon.guard import DEFAULT_ROLES, PASSTHROUGH, DialogueGuard
+from aicordon.guard import DEFAULT_ROLES, NON_EDITING_MODES, PASSTHROUGH, DialogueGuard
 from langchain_core.messages import BaseMessage, convert_to_messages
 from langchain_core.prompt_values import ChatPromptValue, PromptValue
 from langchain_core.runnables import Runnable
@@ -40,8 +41,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-#: The modes a chain can honour. `drop` is missing on purpose — see the module docstring.
-CHAIN_MODES = ("passthrough", "fail")
+#: The modes a chain can honour: what a dialogue takes, less `drop`, which is missing on purpose —
+#: see the module docstring. Derived rather than spelled out, so that a mode added to the policy
+#: arrives here too instead of being quietly refused by a list nobody remembered to widen.
+CHAIN_MODES = tuple(mode for mode in NON_EDITING_MODES if mode != "drop")
 
 
 class PromptInjectionValidator(Runnable[Any, Any]):
@@ -106,15 +109,24 @@ class PromptInjectionValidator(Runnable[Any, Any]):
     def invoke(self, input: Any, config: RunnableConfig | None = None, **kwargs: Any) -> Any:
         """Pass the request on. In `fail` mode `InjectionFound` comes out of here instead.
 
-        The object returned is the object given, unchanged. In `passthrough` mode the finding goes into
-        the messages' `additional_kwargs` where the input carried messages to write on; a bare
-        string has nowhere to carry it and gets a log line only, which is why `flagged` exists.
+        The text is the text that came in, character for character, and the type is the type that
+        came in. The OBJECT is not always the same object: in `passthrough` mode the finding goes
+        into the messages' `additional_kwargs`, and a message is copied to carry it, so an input
+        carrying messages comes back rebuilt around copies — flagged or clean, since "read and
+        found nothing" is a finding too. Copying rather than writing in place is deliberate: the
+        caller's own messages may be connected to a second branch, and a `BaseMessage` is a pydantic
+        model, so editing one in place would edit theirs.
+
+        The SHAPE is the shape that came in, in every mode. Where the request arrived as something
+        with no room for a finding — a bare string, or a list of the tuples and dicts a chat model
+        also accepts — it goes on exactly as it came and gets a log line only, rather than being
+        handed on as the messages we built to read it. That is why `flagged` exists.
         """
         verdict, messages = self._decide(input)
         if verdict.flagged:
             logger.warning("prompt injection in the request: %s, action %s",
                            ", ".join(verdict.threats), self.mode)
-        if self.mode == "passthrough" and messages and not isinstance(input, str):
+        if self.mode == PASSTHROUGH and messages and not isinstance(input, str):
             return self._annotated(input, verdict, messages)
         return input
 
@@ -141,4 +153,12 @@ class PromptInjectionValidator(Runnable[Any, Any]):
             # A `StringPromptValue` is a string with a class around it: there are no messages in it
             # to write on, so it goes on as it came, the same as a bare string.
             return value
-        return marked
+        if isinstance(value, BaseMessage):
+            return marked[0]
+        if isinstance(value, list) and all(isinstance(item, BaseMessage) for item in value):
+            return marked
+        # A list of tuples or of dicts is a RECIPE for messages, not messages: `convert_to_messages`
+        # built the ones we read, and handing those back would change the shape the caller passed in
+        # — under `passthrough` only, since `fail` returns the input untouched. There is nothing on a
+        # tuple to carry a finding, so it goes on as it came, the same as a bare string.
+        return value
