@@ -2,22 +2,21 @@
 
 ## 0.2.0 — 2026-09-08
 
-Requires `aicordon>=1.2.0`. **Every entry point now defaults to `mode="passthrough"`** —
-`PromptInjectionFilter`, `ToolOutputFilter`, `PromptInjectionGuard` and `PromptInjectionValidator`.
-They read the text and record what they found; they edit, refuse and raise only when a mode says so.
-All four used to act by default.
+Requires `aicordon>=1.2.0`: `annotate` renamed to `passthrough` (does nothing to the text), `redact`
+removed (use `mask` with an empty replacement).
 
-Breaking for code that named no mode, and for nobody else: documents and tool results are no longer
-edited, a flagged turn now reaches the model with the finding on the answer, and a chain link no
-longer raises. Each of those is one argument away:
+All four entry points now default to `mode="passthrough"`. They used to act by default. To keep the
+old behaviour:
 
     PromptInjectionFilter(mode="mask")
     ToolOutputFilter(mode="mask")
     PromptInjectionGuard(mode="drop")
     PromptInjectionValidator(mode="fail")
 
-The reasoning is in the detector's own changelog under 1.2.0, along with the modes and what each
-does. Nothing about detection changed: the base, the rules and the published numbers are the same.
+`PromptInjectionValidator` returns the shape it was given in every mode: a bare string, or a list of
+tuples or dicts, comes back as it was rather than as messages.
+
+Detection is unchanged: the base, the rules and the published numbers are the same.
 
 ## 0.1.1 — 2026-08-27
 

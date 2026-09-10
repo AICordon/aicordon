@@ -2,50 +2,22 @@
 
 ## 1.2.0 — 2026-09-08
 
-### The default mode does nothing to the text
+### Modes
 
-`passthrough` is now the default on both sides of `aicordon.guard`. Both guards used to act by default:
-the material side rewrote the document, the request side held a flagged exchange back. Now they
-read, record what they found in the metadata, and pass the text on exactly as it arrived.
+`MODES` is `passthrough`, `blank`, `mask`, `drop`, `fail`.
 
-**BREAKING for a caller that never named a mode**, and for nobody else. Documents are no longer
-edited, flagged exchanges are no longer held back. Nothing about detection changed — the base, the
-rules and every published number are the same. Name the mode you want:
+- `annotate` renamed to `passthrough`: it does nothing to the text, records the finding in the
+  metadata, and is now the default for `InjectionGuard` and `DialogueGuard`.
+- `redact` removed. The same cut is `mask` with an empty replacement:
+  `InjectionGuard(mode="mask", mask_with="")`.
 
-    InjectionGuard(mode="mask")        # take the injection out, with a marker in its place
-    DialogueGuard(mode="drop")         # do not send a flagged exchange to the model
+Breaking for a caller that named no mode — both guards used to act by default. To keep the old
+behaviour:
 
-**Why.** A library that starts rewriting the caller's documents the moment it is installed has
-changed their data rather than checked it, and the two failures are not symmetric: a missed
-injection is what the layer behind this one exists for, while a sentence taken out of a clean
-document is gone silently and the answer built on what is left still reads fine. The cost is
-measured rather than hypothetical — one clean document in 2000 touched, a median 12.7% of the length
-of a flagged one. On the request side the surprise is the mirror image: a component that stops
-answering users the moment it is wired in, and in a pipeline whose `blocked` output was never
-connected, a turn that disappears with nothing said anywhere.
+    InjectionGuard(mode="mask")
+    DialogueGuard(mode="drop")
 
-`mask` at ingest and `drop` on the request are still the right end state for most callers. They are
-a decision to take after looking at what fires on your own material, not one to inherit by
-installing a package.
-
-### Nothing shortens a text silently
-
-`MODES` is `passthrough`, `blank`, `mask`, `drop`, `fail`. Whatever is done to a text is visible where
-it was done — `blank` keeps the length, `mask` leaves its marker in the block's place — or the text
-is not edited at all: `drop` hands it back on another path, `fail` stops the run. A document that
-came out shorter with nothing to show for it would leave a reader downstream, a person or a model,
-no way to know a sentence had ever been there.
-
-Cutting a block out with nothing in its place is asked for in as many words:
-
-    InjectionGuard(mode="mask", mask_with="")
-
-A short document that the finding covers end to end is then rejected rather than indexed blank: an
-empty row answers no query, and `ipi_action` would claim the text was masked when nothing survived.
-
-Measured on Quadrat-IPI v1.0.1, 1000 injected and 1000 clean documents under `mask`: the payload
-reaches the store in 85.4% of cases against 100% without the filter, is gone without a trace in
-13.1%, and on the `disclose` slice 42.8% and 52.3%. No clean document was touched.
+Detection is unchanged: the base, the rules and the published numbers are the same.
 
 ## 1.1.1 — 2026-08-26
 
