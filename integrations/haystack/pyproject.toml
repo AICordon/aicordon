@@ -21,12 +21,12 @@ classifiers = [
     "Topic :: Security",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
-# `>=1.2.0`: 1.1.0 folded `aicordon.guard` into the detector, 1.1.1 fixed what the cut removes — an
+# `>=1.2.1`: 1.1.0 folded `aicordon.guard` into the detector, 1.1.1 fixed what the cut removes — an
 # injection wrapped across lines lost only the line the span sat on, and against an older one the
-# cut quietly leaves half the instruction — and 1.2.0 made `passthrough` the default on both
+# cut quietly leaves half the instruction — and 1.2.1 made `passthrough` the default on both
 # sides. The wrapper always passes its own mode down, so an older core would still run; the floor is
 # here so that one install and one set of documents describe the same behaviour.
-dependencies = ["haystack-ai>=3.0.0", "aicordon>=1.2.0"]
+dependencies = ["haystack-ai>=3.0.0", "aicordon>=1.2.1"]
 
 [project.urls]
 Homepage = "https://github.com/AICordon/aicordon/blob/main/integrations/haystack/README.md"

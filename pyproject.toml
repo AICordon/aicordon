@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "aicordon"
-version = "1.2.0"
+version = "1.2.1"
 description = "Local prompt-injection scanner for untrusted text: 100-200 documents/s on one CPU core, one false alarm per thousand, no model"
 readme = "README.md"
 requires-python = ">=3.10"
