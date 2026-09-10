@@ -16,7 +16,7 @@ Messages are built BEFORE the timer starts: in a real pipeline a prompt builder 
 timing that would claim somebody else's expense as ours. `pipeline` is a line of its own for the
 same reason - it is the host's per-step cost, paid by every component.
 
-PROCEDURE, as in `experiments/40_prefilter/`: R repeats of the whole pool, the MEDIAN of the repeats
+PROCEDURE, the same as the detector's own speed measurement: R repeats of the whole pool, the MEDIAN of the repeats
 per turn (removes scheduler noise), then the distribution over turns. The uncertainty on the
 headline number is the standard deviation of the per-repeat means. Cost drifts with machine load:
 compare only figures from one procedure in one run.
@@ -27,6 +27,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import statistics
 import time
 from pathlib import Path
@@ -37,9 +38,9 @@ from haystack import Pipeline
 from haystack.dataclasses import ChatMessage
 from haystack_integrations.components.validators.aicordon import PromptInjectionGuard
 
-# Research corpus, not part of any release: it holds other people's turns. The path is the one on
-# the machine this was measured on; pass `--data` to point somewhere else.
-DIRECT = Path("/home/mike/Projects/ai-safity/experiments/45_picket_direct/data/direct.jsonl")
+# Research corpus, not part of any release: it holds other people's turns. Point at it with
+# `AICORDON_DIRECT_CORPUS`, or pass `--data`.
+DIRECT = Path(os.environ.get("AICORDON_DIRECT_CORPUS", "direct.jsonl"))
 HERE = Path(__file__).resolve().parent
 CLEAN_SLICE = "wildchat_user"
 SYSTEM = "You are a helpful assistant."

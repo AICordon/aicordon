@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import time
 from difflib import SequenceMatcher
@@ -34,7 +35,8 @@ from haystack.components.writers import DocumentWriter
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack_integrations.components.preprocessors.aicordon import PromptInjectionFilter
 
-DATA = Path("/home/mike/Projects/ai-safity/quadrat-ipi/dataset/v1.0.1/data")
+# The `data` directory of Quadrat-IPI v1.0.1. Point at it with `AICORDON_QUADRAT_DIR`, or pass `--data`.
+DATA = Path(os.environ.get("AICORDON_QUADRAT_DIR", "quadrat-ipi/data"))
 HERE = Path(__file__).resolve().parent
 
 

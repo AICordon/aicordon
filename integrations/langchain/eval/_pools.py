@@ -1,23 +1,24 @@
 """The corpora these measurements stand on, and the two functions every arm needs.
 
 Research corpora, not part of any release: one holds other people's chat turns, the other is the
-public Quadrat-IPI set. Both paths are the ones on the machine the numbers were taken on; every
-script takes `--data` to point elsewhere.
+public Quadrat-IPI set. Point at them with `AICORDON_DIRECT_CORPUS` and `AICORDON_QUADRAT_DIR`, or
+pass `--data` to any script.
 """
 from __future__ import annotations
 
 import collections
 import hashlib
 import json
+import os
 import re
 import zlib
 from difflib import SequenceMatcher
 from pathlib import Path
 
-#: Typed attacks and real user turns, from exp45.
-DIRECT = Path("/home/mike/Projects/ai-safity/experiments/45_picket_direct/data/direct.jsonl")
-#: Documents with a known planted span, from Quadrat-IPI v1.0.1.
-QUADRAT = Path("/home/mike/Projects/ai-safity/quadrat-ipi/dataset/v1.0.1/data")
+#: Typed attacks and real user turns: a jsonl with `id`, `text` and `slice`.
+DIRECT = Path(os.environ.get("AICORDON_DIRECT_CORPUS", "direct.jsonl"))
+#: Documents with a known planted span: the `data` directory of Quadrat-IPI v1.0.1.
+QUADRAT = Path(os.environ.get("AICORDON_QUADRAT_DIR", "quadrat-ipi/data"))
 
 ATTACK_SLICES = ("jb_wild", "jb_public")
 CLEAN_SLICE = "wildchat_user"
@@ -30,7 +31,8 @@ def norm(s: str) -> str:
 def held_out(rows: list[dict]) -> list[dict]:
     """The held-out half, minus anything with a near-duplicate in the training half.
 
-    The same selection as exp45/tune, so the numbers here and there are about the same texts. The
+    The same selection as the detector's direct-mode report, so the numbers here and there are
+    about the same texts. The
     cleaning is not tidiness: public jailbreaks are variations on one DAN, and without it the figure
     runs about eight points high.
     """

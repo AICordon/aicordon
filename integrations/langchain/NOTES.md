@@ -134,7 +134,7 @@ costs a round trip we do not currently need.
 The two middlewares and the document filter are not serialised by LangChain at all: an agent is
 assembled in code, so there is no saved form to drift.
 
-Checked in `../../../experiments/45_picket_direct/langchain_dialogue/stand.py`.
+Checked by an end-to-end stand kept outside this package.
 
 ## What carries over to another framework
 

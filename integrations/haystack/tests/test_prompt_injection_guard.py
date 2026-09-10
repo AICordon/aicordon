@@ -8,6 +8,7 @@ save, and whether the input list comes back unchanged.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -15,7 +16,9 @@ from haystack import Pipeline
 from haystack.dataclasses import ChatMessage, ImageContent, TextContent
 from haystack_integrations.components.validators.aicordon import PromptInjectionGuard
 
-DIRECT = Path("/home/mike/Projects/ai-safity/experiments/45_picket_direct/data/direct.jsonl")
+# The corpus of typed attacks, a jsonl pointed at by `AICORDON_DIRECT_CORPUS`. It is not shipped - it
+# holds other people's chat turns - so the fixture skips rather than fails where it is absent.
+DIRECT = Path(os.environ.get("AICORDON_DIRECT_CORPUS", "direct.jsonl"))
 
 
 @pytest.fixture(scope="module")
@@ -25,6 +28,8 @@ def attack() -> str:
     Writing one by hand tests nothing: the `dpi` rules were fitted on forum role-play, and a
     plausible-looking two-line DAN is exactly the short form they do not fire on.
     """
+    if not DIRECT.exists():
+        pytest.skip(f"no corpus of typed attacks at {DIRECT}: set AICORDON_DIRECT_CORPUS")
     guard = PromptInjectionGuard(mode="drop")
     guard.warm_up()
     with DIRECT.open() as fh:
