@@ -99,6 +99,5 @@ corpus this tool argues with, see Limits in the README.
 The arithmetic: 500 documents of 2.6 KB on average take 2.78 s in one run, which is 5.3 ms each on
 top of the start — the same 1.9 ms per 1000 characters, at that size.
 
-Both figures come from `experiments/40_prefilter/floorbench.py`, the same run as the rest of this
-page. What you must not do is spawn the command per file — that pays the floor 500 times
+Both figures come from the same run as the rest of this page. What you must not do is spawn the command per file — that pays the floor 500 times
 over.

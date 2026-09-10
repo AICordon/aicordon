@@ -50,7 +50,7 @@ could change.
 
 ## The end-to-end stand (2026-09-08)
 
-`experiments/45_picket_direct/haystack_pipeline/stand.py` in the research repository builds the two
+A stand kept outside this package builds the two
 pipelines a RAG application really has — index, retrieve, assemble, generate — and checks what
 reaches the generator against a CONTROL pipeline with no components in it at all. That is what makes
 the passthrough claim checkable: not "the component reports it did nothing" but "the prompt is the

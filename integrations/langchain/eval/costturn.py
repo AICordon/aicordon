@@ -17,7 +17,7 @@ that would claim somebody else's expense as ours. `agent` is a line of its own f
 it is the host's per-run cost, paid whether or not any middleware is installed, and the last column
 of the summary shows what an empty agent costs so the two can be told apart.
 
-PROCEDURE, as in `experiments/40_prefilter/`: R repeats of the whole pool, the MEDIAN of the repeats
+PROCEDURE, the same as the detector's own speed measurement: R repeats of the whole pool, the MEDIAN of the repeats
 per turn (removes scheduler noise), then the distribution over turns. The uncertainty on the
 headline number is the standard deviation of the per-repeat means. Cost drifts with machine load:
 compare only figures from one procedure in one run.

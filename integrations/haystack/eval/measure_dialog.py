@@ -10,8 +10,8 @@ THE THIRD NUMBER OUTRANKS THE FIRST TWO: the pipeline and the bare detector must
 on the same string. A wrapper may neither lose text (part of a message, a truncated tail) nor add
 its own. If that number is not zero, the rest must not be read.
 
-THE POOLS. Attacks: the held-out half of `jb_wild` + `jb_public`, selected as in exp45/tune - half
-by md5 of `id`, then near-duplicates dropped by five-word shingles, Jaccard > 0.3. Public jailbreaks
+THE POOLS. Attacks: the held-out half of `jb_wild` + `jb_public`, selected as in the detector's
+direct-mode report - half by md5 of `id`, then near-duplicates dropped by five-word shingles, Jaccard > 0.3. Public jailbreaks
 are variations on one DAN, and without that cleaning the figure runs about 8 points high. Clean
 turns: `wildchat_user` from the same held-out half.
 
@@ -28,6 +28,7 @@ import argparse
 import collections
 import hashlib
 import json
+import os
 import re
 import time
 import zlib
@@ -40,9 +41,9 @@ from haystack import Pipeline, component
 from haystack.dataclasses import ChatMessage
 from haystack_integrations.components.validators.aicordon import PromptInjectionGuard
 
-# Research corpus, not part of any release: it holds other people's turns. The path is the one on
-# the machine this was measured on; pass `--data` to point somewhere else.
-DIRECT = Path("/home/mike/Projects/ai-safity/experiments/45_picket_direct/data/direct.jsonl")
+# Research corpus, not part of any release: it holds other people's turns. Point at it with
+# `AICORDON_DIRECT_CORPUS`, or pass `--data`.
+DIRECT = Path(os.environ.get("AICORDON_DIRECT_CORPUS", "direct.jsonl"))
 HERE = Path(__file__).resolve().parent
 ATTACK_SLICES = ("jb_wild", "jb_public")
 CLEAN_SLICE = "wildchat_user"
@@ -65,7 +66,8 @@ class Reached:
 def held_out(rows: list[dict]) -> list[dict]:
     """The held-out half, minus anything with a near-duplicate in the training half.
 
-    The same selection as exp45/tune, so the numbers here and there are about the same texts."""
+    The same selection as the detector's direct-mode report, so the numbers here and there are
+    about the same texts."""
     half = lambda k: int(hashlib.md5(k.encode()).hexdigest(), 16) % 2 == 0   # noqa: E731
 
     def shingles(text: str, k: int = 5) -> set[int]:

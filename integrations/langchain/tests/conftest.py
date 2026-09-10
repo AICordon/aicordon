@@ -8,6 +8,7 @@ and whether the caller can tell "read, clean" from "not read".
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -24,9 +25,9 @@ INJECTED_DOC = ("Quarterly report\n\nRevenue grew 4%.\n"
 
 CLEAN_DOC = "Quarterly report\n\nRevenue grew 4%. Costs were flat, and headcount is unchanged.\n"
 
-#: The corpus of typed attacks. Present in the research checkout only, so the fixture skips rather
-#: than fails where it is absent — the package is built from a clone that does not carry it.
-DIRECT = Path("/home/mike/Projects/ai-safity/experiments/45_picket_direct/data/direct.jsonl")
+#: The corpus of typed attacks, a jsonl pointed at by `AICORDON_DIRECT_CORPUS`. It is not shipped —
+#: it holds other people's chat turns — so the fixture skips rather than fails where it is absent.
+DIRECT = Path(os.environ.get("AICORDON_DIRECT_CORPUS", "direct.jsonl"))
 
 
 @pytest.fixture(scope="session")
@@ -39,7 +40,7 @@ def attack() -> str:
     from aicordon import picket
 
     if not DIRECT.exists():
-        pytest.skip(f"corpus of typed attacks not in this checkout: {DIRECT}")
+        pytest.skip(f"no corpus of typed attacks at {DIRECT}: set AICORDON_DIRECT_CORPUS")
     detector = picket.load(mode="dpi", span_pad=-50)
     with DIRECT.open() as fh:
         for line in fh:

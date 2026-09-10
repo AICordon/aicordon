@@ -2,7 +2,7 @@
 
 ## 0.2.0 — 2026-09-08
 
-Requires `aicordon>=1.2.0`: `annotate` renamed to `passthrough` (does nothing to the text), `redact`
+Requires `aicordon>=1.2.1`: `annotate` renamed to `passthrough` (does nothing to the text), `redact`
 removed (use `mask` with an empty replacement).
 
 Both components now default to `mode="passthrough"`. They used to act by default. To keep the old
