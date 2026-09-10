@@ -132,11 +132,12 @@ middleware=[PromptInjectionGuard(mode="drop"), ToolOutputFilter(mode="mask")]
 ```python
 from aicordon_langchain import PromptInjectionValidator
 
-chain = prompt | PromptInjectionValidator() | model        # raises InjectionFound on a finding
+chain = prompt | PromptInjectionValidator(mode="fail") | model   # raises InjectionFound
 ```
 
 A link in a chain returns a value and the next link is the model; there is no arrangement in which
-it declines the call and answers instead. So it raises, or it marks and lets the chain decide:
+it declines the call and answers instead. So it raises, or — in `passthrough`, the default — it
+marks and lets the chain decide:
 
 ```python
 guard = PromptInjectionValidator(mode="passthrough")
