@@ -1,13 +1,14 @@
-"""Intent — the full AI Cordon indirect prompt injection detector, over an API. A STUB in this build.
+"""Intent — the full AI Cordon indirect prompt injection detector, over an API.
 
 The public names are the same as in the `picket` package, and that is the chief requirement on both:
 code written against one detector works with the other unchanged — embedding code as much as the
-future adapters for AI frameworks.
+adapters for AI frameworks.
 
     from aicordon import intent
 
-    det = intent.load(api_key="...")       # key: argument, AICORDON_API_KEY or ~/.config
-    rep = det.check(letter)
+    det = intent.load()                    # key: api_key=, AICORDON_API_KEY or `aicordon login`
+    rep = det.check(letter)                # a Report, as Picket returns it
+    a = det.assess(letter)                 # the service's full answer: score, spans, version
 
 There are exactly two differences from Picket, and both are unavoidable: it needs a key and it needs
 the network. Everything else is the same finding model, the same contract, the same command shell.
@@ -18,11 +19,13 @@ from aicordon.core.engine import BaseDetector, EngineUnavailable
 from aicordon.core.model import Document, Evidence, Finding, Report, Severity
 from aicordon.core.product import Option, Product
 
-from .credentials import CONFIG, ENV_VAR, find_key, has_key
+from .credentials import (BASE_URL_ENV, CONFIG, CREDENTIALS, DEFAULT_BASE_URL, ENV_VAR, delete_key,
+                          find_key, has_key, save_key)
 
 __all__ = [
-    "Detector", "load", "DEFAULT_ENDPOINT", "PRODUCT",
-    "find_key", "has_key", "ENV_VAR", "CONFIG",
+    "Detector", "load", "Assessment", "Span", "DEFAULT_ENDPOINT", "PRODUCT",
+    "find_key", "has_key", "save_key", "delete_key",
+    "ENV_VAR", "BASE_URL_ENV", "DEFAULT_BASE_URL", "CREDENTIALS", "CONFIG",
     "Document", "Finding", "Evidence", "Report", "Severity",
     "EngineUnavailable", "BaseDetector",
 ]
@@ -31,7 +34,7 @@ __all__ = [
 # products have to behave the same way down to this. The key lookup stays eager — `credentials` is
 # what decides whether this product is available at all, and it reads at most one small file.
 
-_LAZY = ("Detector", "load", "DEFAULT_ENDPOINT")
+_LAZY = ("Detector", "load", "Assessment", "Span", "DEFAULT_ENDPOINT")
 
 
 def __getattr__(name: str):
@@ -71,8 +74,8 @@ PRODUCT = Product(
     free=False,
     options=(
         Option(flags=("--api-key",), dest="api_key", metavar="KEY",
-               help=f"API access key (otherwise {ENV_VAR} or {CONFIG})"),
-        Option(flags=("--endpoint",), dest="endpoint", metavar="URL",
-               help="API address (production by default)"),
+               help=f"API key (otherwise {ENV_VAR}, then `aicordon login`)"),
+        Option(flags=("--base-url",), dest="base_url", metavar="URL",
+               help=f"API address (otherwise {BASE_URL_ENV}, then {DEFAULT_BASE_URL})"),
     ),
 )

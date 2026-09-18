@@ -1,5 +1,31 @@
 # Changelog
 
+## 1.3.0 — unreleased
+
+### Intent ships
+
+`aicordon.intent` is the full AI Cordon detector over its API, behind the interface Picket already
+has: `load`, `check`, `check_all`, `reports`, the same `Report` and `Finding`.
+
+    from aicordon import intent
+    det = intent.load()                   # key: api_key=, AICORDON_API_KEY, or `aicordon login`
+    rep = det.check(text)
+    a = det.assess(text)                  # score, spans, version — for measurement
+
+- The key is looked up as the common API clients do: argument, `AICORDON_API_KEY`, then
+  `~/.config/aicordon/credentials` (owner-only, written by `aicordon login`). `aicordon login` checks
+  the key with the API before saving it; `--status` shows which key is in use; `aicordon logout`.
+- `base_url=` / `AICORDON_BASE_URL` pick the API; production otherwise.
+- `fpr="1e-3" | "1e-4" | "1e-5"` picks the operating point; the service default is 1e-4.
+- A text too short to judge gets no finding and `assess` reports `judged=False`. A network error, a
+  rejected key or an unpaid account raises `EngineUnavailable`; 429 and 5xx are retried with backoff.
+- Standard library only: the package still has no dependencies.
+
+### Docs
+
+`README.md` is now the page for both detectors. Picket's full description moved to `docs/picket.md`,
+Intent's is in `docs/intent.md`. `examples/compare.py` runs both over five texts.
+
 ## 1.2.1 — 2026-09-10
 
 ### Modes
