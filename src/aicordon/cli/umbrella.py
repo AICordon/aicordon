@@ -219,8 +219,7 @@ def main(argv=None) -> int:
         print("no product is installed", file=sys.stderr)
         return EXIT_ENGINE
 
-    # Account commands belong to the distribution, not to a product: Picket has no key, and giving
-    # it a `login` just to keep the two products' command sets identical would be a lie in its help.
+    # Account commands are top-level, not per product: Picket has no key.
     if argv and argv[0] in ("login", "logout"):
         try:
             from aicordon.intent import login as auth

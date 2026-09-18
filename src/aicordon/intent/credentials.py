@@ -1,20 +1,15 @@
-"""Where the Intent API key and address come from. Part of the Intent package, not of the shared core.
+"""Intent API key and address. Lives in the Intent package: Picket has no key.
 
-It lives here deliberately: the key belongs to exactly one product, and moving it into shared code
-would make the free Picket carry the notion of a key it does not have.
+Key lookup order (as in the OpenAI, Anthropic and Hugging Face clients):
 
-The lookup follows the convention of the common API clients (OpenAI, Anthropic, Hugging Face), so
-nothing about it has to be learned:
+    1. argument              intent.load(api_key="aig_...")
+    2. environment           AICORDON_API_KEY
+    3. credentials file      written by `aicordon login`, mode 0600
 
-    1. an explicit argument           intent.load(api_key="aig_...")
-    2. an environment variable        AICORDON_API_KEY
-    3. the credentials file           written by `aicordon login`, readable by its owner only
+Address: `base_url=`, then AICORDON_BASE_URL, then production.
 
-The address works the same way: `base_url=` or AICORDON_BASE_URL, and production otherwise.
-
-Nothing is validated here. "There is a key" and "the key works" are different questions, and the
-second is answered by the API — `aicordon login` asks it once before saving, every call asks it again.
-The key is never printed whole: `mask` is what logs, reports and `describe` show.
+The key is not validated here; `aicordon login` checks it with the API before saving. Output shows
+the key only through `mask`.
 """
 from __future__ import annotations
 
@@ -33,10 +28,9 @@ def _config_home() -> Path:
     return Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config")
 
 
-# One file, one line, owner-only — the shape `huggingface-cli login` and `gh auth` settled on. Not
-# JSON: a key is the only thing it holds, and a format with room for more invites putting more there.
+# One line, owner-only, as in `huggingface-cli login`.
 CREDENTIALS = _config_home() / "aicordon" / "credentials"
-CONFIG = CREDENTIALS                     # the name the package exported before the file had a format
+CONFIG = CREDENTIALS                     # former name
 
 NO_KEY_HINT = (
     f"No API key found. Get one at {SITE}, then either:\n"
@@ -47,14 +41,14 @@ NO_KEY_HINT = (
 
 def _clean(value: str | None) -> str | None:
     value = (value or "").strip()
-    return value or None                  # an empty string and whitespace do not count as a key
+    return value or None                  # empty or whitespace: no key
 
 
 def _read_file(path: Path) -> str | None:
     try:
         return _clean(path.read_text(encoding="utf-8")) if path.is_file() else None
     except OSError:
-        return None                       # an unreadable file means no key, not a crash
+        return None                       # unreadable file: no key
 
 
 def find_key(explicit: str | None = None) -> str | None:
@@ -83,7 +77,7 @@ def base_url(explicit: str | None = None) -> str:
 
 
 def mask(key: str | None) -> str:
-    """`aig_…Xy12` — enough to tell two keys apart, not enough to use one."""
+    """`aig_…Xy12`: prefix and last four characters."""
     if not key:
         return "—"
     head, _, _ = key.partition("_")
@@ -92,11 +86,7 @@ def mask(key: str | None) -> str:
 
 
 def save_key(key: str) -> Path:
-    """Write the key for this user, owner read/write only, atomically.
-
-    The directory is created 0700 and the file is written to a temporary name and renamed, so a
-    crash never leaves a half-written key and there is no moment when the file is world-readable.
-    """
+    """Save the key atomically: directory 0700, file 0600, written to a temp file and renamed."""
     key = _clean(key)
     if not key:
         raise ValueError("an empty key cannot be saved")

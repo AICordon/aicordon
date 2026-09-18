@@ -1,14 +1,11 @@
-"""`aicordon login` / `aicordon logout` — keep the Intent API key where the client finds it.
+"""`aicordon login` / `aicordon logout`: save and remove the Intent API key.
 
-The flow is the one `huggingface-cli login` and `gh auth login` taught everyone:
+    aicordon login                   prompts for the key (hidden input)
+    echo "$KEY" | aicordon login     reads it from stdin
+    aicordon login --status          the key in use and its source
+    aicordon logout                  deletes the saved key
 
-    aicordon login                   prompts for the key without echoing it
-    echo "$KEY" | aicordon login     takes it from a pipe (CI, scripts)
-    aicordon login --status          which key is in use and where it came from
-    aicordon logout                  removes the stored key
-
-The key is checked against the API before it is saved — a typo is caught now, not on the first scan
-an hour later. `--no-verify` skips that for offline setups.
+`login` verifies the key with the API before saving; `--no-verify` skips the check.
 """
 from __future__ import annotations
 

@@ -1,26 +1,16 @@
-"""The Intent detector: the full AI Cordon detector, over its API.
+"""Intent detector: a client for the AI Cordon API with the same interface as `picket`.
 
-The package interface is the one `picket` has — the same names, the same finding model, the same
-contract — so code written against one detector works with the other unchanged. What is specific to
-Intent is the key, the network, and one method Picket has no use for:
+    det = intent.load()          # key: argument, AICORDON_API_KEY, `aicordon login`
+    rep = det.check(letter)      # Report, as Picket returns it
+    a = det.assess(letter)       # full answer: score, verdict, spans, version
 
-    det = intent.load()                          # key: argument, AICORDON_API_KEY, `aicordon login`
-    rep = det.check(letter)                      # a Report, exactly as Picket returns it
-    a = det.assess(letter)                       # the raw answer: score, verdict, spans, version
+`assess` is for benchmarks: they need a score for every document, and a Report holds findings only.
 
-`assess` exists for measurement. A benchmark rule such as LLMail's "the lowest threshold with no
-alarm on the benign set" needs the score of every document, including the ones with no finding, and
-a Report carries findings only. Everyday code wants `check`.
-
-Three things are decided here and nowhere else:
-
-  * a network failure is `EngineUnavailable`, never an empty result — embedding code reads silence
-    as "nothing found", so a broken link would become a verdict;
-  * a document the service declines to judge (too short to segment, too long to accept) yields no
-    finding, and `assess` says so in `judged` / `reason`. It is not a clean verdict and is never
-    reported as one;
-  * busy and transient answers (429, 5xx, a dropped connection) are retried with backoff, honouring
-    `Retry-After`; anything else is raised at once.
+Error handling:
+  * network failure -> `EngineUnavailable`, never an empty result (callers read silence as "nothing
+    found");
+  * a document the service does not judge (too short, too long) -> no findings, `judged=False`;
+  * 429, 5xx and dropped connections are retried with backoff and `Retry-After`; other errors raise.
 """
 from __future__ import annotations
 
@@ -61,7 +51,7 @@ class Span:
 
 @dataclass(frozen=True)
 class Assessment:
-    """One document as the API judged it. `flagged` is the service's own decision at its threshold."""
+    """The API answer for one document. `flagged` is the service's decision at its threshold."""
 
     doc_id: str
     judged: bool
@@ -87,10 +77,9 @@ class Assessment:
 
 
 class Detector(BaseDetector):
-    """The same public interface as `picket.Detector`, on top of the remote detector.
+    """Same public interface as `picket.Detector`. Thread-safe.
 
-    Thread-safe: one instance can serve a whole application. `workers` requests go out at once within
-    a batch — the API judges one document per call, so a batch is concurrency, not one big request.
+    The API takes one document per request; a batch is sent as `workers` parallel requests.
     """
 
     name = "intent"
@@ -111,8 +100,8 @@ class Detector(BaseDetector):
         self._timeout = timeout
         self._retries = max(0, int(max_retries))
         self._workers = max(1, int(workers))
-        # The operating point: None takes the service's own decision (its default, 1e-4 today);
-        # "1e-3" / "1e-4" / "1e-5" pick one of the verdicts the service returns for every document.
+        # None: the service's decision (default 1e-4). "1e-3" / "1e-4" / "1e-5": the verdict the
+        # service returns for that operating point.
         self._fpr = None if fpr is None else f"{float(fpr):.0e}"
 
     def __repr__(self) -> str:
@@ -122,13 +111,11 @@ class Detector(BaseDetector):
 
     @property
     def measured(self) -> dict:
-        # Empty on purpose: the published numbers are measured through this very client, against the
-        # production service, and they live with the benchmark reports rather than in the library.
+        # Published numbers live in the benchmark reports, not in the client.
         return {}
 
     def available(self) -> None:
-        # No network here: the shell probes every product on every run, and a listing must not wait
-        # for a server. A key that does not work is reported by the first call, loudly.
+        # No network call: the CLI probes every product on start. A bad key fails on the first request.
         if not self._key:
             raise EngineUnavailable("no API key", hint=cred.NO_KEY_HINT)
 
@@ -150,7 +137,7 @@ class Detector(BaseDetector):
         for doc, a in zip(docs, self.assess_all(docs)):
             if not a.flagged:
                 continue
-            # A verdict without a located fragment still has to surface: the whole document is the span.
+            # Flagged without spans: report the whole document.
             for s in a.spans or (Span(0, len(doc.text), a.score or 0.0),):
                 quote = doc.text[s.start:s.end]
                 yield Finding(doc_id=doc.id, engine=self.name, engine_version=a.version or self.version,

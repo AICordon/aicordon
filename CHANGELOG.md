@@ -2,36 +2,34 @@
 
 ## 1.3.0 — unreleased
 
-### Intent ships
+### Intent
 
-`aicordon.intent` is the full AI Cordon detector over its API, behind the interface Picket already
-has: `load`, `check`, `check_all`, `reports`, the same `Report` and `Finding`.
+`aicordon.intent` is now a working client for the AI Cordon API. Same interface as Picket: `load`,
+`check`, `check_all`, `reports`, `Report`, `Finding`.
 
     from aicordon import intent
-    det = intent.load()                   # key: api_key=, AICORDON_API_KEY, or `aicordon login`
+    det = intent.load()
     rep = det.check(text)
-    a = det.assess(text)                  # score, spans, version — for measurement
+    a = det.assess(text)                  # score, spans, version
 
-- The key is looked up as the common API clients do: argument, `AICORDON_API_KEY`, then
-  `~/.config/aicordon/credentials` (owner-only, written by `aicordon login`). `aicordon login` checks
-  the key with the API before saving it; `--status` shows which key is in use; `aicordon logout`.
-- `base_url=` / `AICORDON_BASE_URL` pick the API; production otherwise.
-- `fpr="1e-3" | "1e-4" | "1e-5"` picks the operating point; the service default is 1e-4.
-- A text too short to judge gets no finding and `assess` reports `judged=False`. A network error, a
-  rejected key or an unpaid account raises `EngineUnavailable`; 429 and 5xx are retried with backoff.
-- Standard library only: the package still has no dependencies.
+- API key: `api_key=`, then `AICORDON_API_KEY`, then `~/.config/aicordon/credentials`.
+- `aicordon login` verifies and saves the key; `aicordon login --status`; `aicordon logout`.
+- API address: `base_url=` or `AICORDON_BASE_URL`.
+- Operating point: `fpr="1e-3" | "1e-4" | "1e-5"`, default `1e-4`.
+- Texts too short to judge get no findings; `assess` returns `judged=False`.
+- Network errors, a rejected key and an unpaid account raise `EngineUnavailable`. 429 and 5xx are
+  retried.
 
-### With a key, `aicordon <file>` asks which detector
+### CLI
 
-With an Intent key present, both products are ready, and the command without a product name no
-longer picks Picket on its own: in a terminal it asks, in a script it refuses and prints
-`aicordon picket …` / `aicordon intent …`. Silently choosing a detector for you is what the shell
-never does. Without a key nothing changes; scripts that name the product are unaffected.
+With an Intent key present, `aicordon <file>` without a product name asks which detector to use, or
+exits with code 2 when there is no terminal. To keep the old behaviour, name the product:
+`aicordon picket <file>`.
 
 ### Docs
 
-`README.md` is now the page for both detectors. Picket's full description moved to `docs/picket.md`,
-Intent's is in `docs/intent.md`. `examples/compare.py` runs both over five texts.
+`README.md` covers both detectors. Picket docs moved to `docs/picket.md`; Intent docs are in
+`docs/intent.md`. `examples/compare.py` runs both detectors on five sample texts.
 
 ## 1.2.1 — 2026-09-10
 

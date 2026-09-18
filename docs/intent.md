@@ -1,30 +1,31 @@
-# Intent — the accurate detector
+# Intent
 
-The API half of [`aicordon`](https://github.com/AICordon/aicordon): the full AI Cordon detector,
-called over the network. Same interface as [Picket](https://github.com/AICordon/aicordon/blob/main/docs/picket.md);
-what differs is that it needs a key and a network.
+Intent is the AI Cordon prompt-injection detector, called over an API. It has the same Python API
+and CLI as [Picket](https://github.com/AICordon/aicordon/blob/main/docs/picket.md). It needs an API key
+and network access.
 
-It reads the text the way a model does and finds instructions addressed to that model — whatever
-their wording, in any language it was trained on, hidden in markup or phrased as a polite note. The
-default operating point is **FPR 1e-4**: about one false alarm in ten thousand clean documents.
+Intent finds instructions addressed to the model in any wording, including ones hidden in markup.
+Default operating point: FPR 1e-4, about one false alarm per 10 000 clean documents.
 
-## The key
+The text you check is sent to the AI Cordon API. If it must not leave your machine, use Picket.
 
-Looked up in the order the common API clients use:
+## API key
+
+The client looks for the key in this order:
 
 1. `intent.load(api_key="aig_...")`
 2. the `AICORDON_API_KEY` environment variable
-3. the file written by `aicordon login` — `~/.config/aicordon/credentials`, readable by you only
+3. `~/.config/aicordon/credentials`, written by `aicordon login` (mode 0600)
 
 ```console
-$ aicordon login                   # prompts, input hidden; checks the key with the API, then saves it
-$ echo "$KEY" | aicordon login     # the same from a script or CI
-$ aicordon login --status          # which key is in use, and where it came from
-$ aicordon logout
+$ aicordon login                   # prompts for the key, verifies it with the API, saves it
+$ echo "$KEY" | aicordon login     # non-interactive
+$ aicordon login --status          # the key in use (masked) and where it came from
+$ aicordon logout                  # deletes the saved key
 ```
 
-The key is never printed whole. The address is `https://app.ai-cordon.com`; `base_url=` or
-`AICORDON_BASE_URL` points the client elsewhere.
+The API address defaults to `https://app.ai-cordon.com`. Override it with `base_url=` or
+`AICORDON_BASE_URL`.
 
 ## Python
 
@@ -33,27 +34,23 @@ from aicordon import intent
 
 det = intent.load()
 
-rep = det.check(text)                 # a Report: findings with spans, as Picket returns it
-reps = det.check_all(texts)           # many texts; requests go out 4 at a time, order kept
+rep = det.check(text)                 # Report with findings and their spans
+reps = det.check_all(texts)           # many texts, 4 requests in parallel, order preserved
 
-a = det.assess(text)                  # the service's full answer
+a = det.assess(text)                  # full API answer
 a.flagged, a.score, a.spans, a.version
 
-det = intent.load(fpr="1e-3")         # another operating point: 1e-3, 1e-4 (default) or 1e-5
+det = intent.load(fpr="1e-3")         # operating point: "1e-3", "1e-4" (default) or "1e-5"
 ```
 
-`check` is for applications. `assess` is for measurement: it returns the score of every document,
-including those with no finding, which a benchmark rule needs.
+Use `check` in applications. Use `assess` for benchmarks: it returns a score for every document,
+including those without findings.
 
-## What it will not do
+## Behaviour
 
-* **Judge a very short text.** Below about a dozen tokens the detector has nothing to measure. Such a
-  text gets no finding, and `assess` says `judged=False, reason="too_short"`. That is not a clean
-  verdict.
-* **Name the technique.** A finding says where the instruction is (`IPI/Intent` plus its span), not
-  what kind it is. Picket's findings name techniques; run both if you need that.
-* **Fail quietly.** A network error, a rejected key or an unpaid account raises
-  `EngineUnavailable`. It never turns into an empty report. Busy answers (429, 5xx) are retried with
-  backoff first.
-
-The text you check is sent to the AI Cordon API. If it must not leave your machine, use Picket.
+* **Short texts are not judged.** Below about 12 tokens the API returns no score. `check` reports no
+  findings; `assess` returns `judged=False, reason="too_short"`.
+* **Findings have no technique name.** Every finding is `IPI/Intent` with a span. Picket names the
+  technique if you need it.
+* **Errors raise.** Network errors, a rejected key and an unpaid account raise `EngineUnavailable`.
+  429 and 5xx responses are retried with backoff and `Retry-After`.

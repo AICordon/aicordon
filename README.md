@@ -7,20 +7,20 @@
 
 **Find prompt injections in the text your model reads: mail, pages, tool results, retrieved chunks.**
 
-Two detectors, one interface. Code written against one works with the other unchanged.
+Two detectors with the same Python API and CLI.
 
 | | **Picket** — fast | **Intent** — accurate |
 |---|---|---|
 | what it is | a signature rule, runs in your process | the full AI Cordon detector, over an API |
 | speed | **100–200 documents a second** on one CPU core | a network round trip per document |
 | false alarms | **~1 in 1 000** clean documents | **~1 in 10 000** clean documents (FPR 1e-4) |
-| catches | the obvious: textbook phrasing an attacker did not bother to hide | instructions written as ordinary prose, in any wording, hidden in markup |
+| catches | known phrasings: "ignore previous instructions", "reveal your system prompt" | instructions in any wording, including ones hidden in markup |
 | needs | nothing: no model, no network, no key | an API key |
 | your text | **never leaves the process**: Picket has no network code | **is sent to the AI Cordon API** to be judged |
 | details | [docs/picket.md](https://github.com/AICordon/aicordon/blob/main/docs/picket.md) | [docs/intent.md](https://github.com/AICordon/aicordon/blob/main/docs/intent.md) |
 
-Use Picket where a heavier check cannot go at all: a whole corpus, an ingest path, a mail gateway.
-Use Intent where a miss is expensive. They also stack: Picket first, Intent on the rest.
+Picket: bulk scanning, ingest pipelines, mail gateways, offline use. Intent: where a missed injection
+is expensive. They can be combined: Picket on everything, Intent on what matters.
 
 ## Quick start
 
@@ -44,7 +44,7 @@ for det in (fast, full):
             print(det.title, f.threat, text[f.span[0]:f.span[1]])
 ```
 
-A report says what was found and where. It never says a text is safe: no finding is not a verdict.
+A report lists findings with their positions. No findings does not mean no injection.
 
 ## Both on the same five texts
 
@@ -59,13 +59,12 @@ text                         Picket (local rule)              Intent (API)
 05-quarterly-report.txt      —                                —      score 0.03
 ```
 
-The textbook injection is caught by both. The polite note to "the assistant that summarises this
-ticket" and the instruction in an HTML comment carry none of the words a rule looks for — only Intent
-sees them. A question that merely contains "ignore" and "previous instructions" alarms neither.
+Both flag 01. Texts 02 and 03 contain no known phrasing, so only Intent flags them. Text 04 is an
+ordinary question that contains "ignore" and "previous instructions"; neither detector flags it.
 
 ## Licensing
 
-**Apache License 2.0** (`LICENSE`), the code and the shipped Picket base alike. Contributions are
-accepted under the DCO: sign your commits off with `git commit -s`.
+Apache License 2.0 (`LICENSE`), including the Picket rule base. Contributions are accepted under the
+DCO: sign off your commits with `git commit -s`.
 
 Get an Intent key at [ai-cordon.com](https://ai-cordon.com).

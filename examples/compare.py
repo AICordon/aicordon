@@ -1,10 +1,10 @@
-"""Run both detectors over the example texts and print what each of them says.
+"""Run Picket and Intent on the example texts and print both results.
 
-    python examples/compare.py                 # Picket always; Intent too when a key is found
-    python examples/compare.py my-letter.txt   # your own files instead
+    python examples/compare.py                 # examples/texts/*
+    python examples/compare.py my-letter.txt   # your files
 
-Picket runs locally and needs nothing. Intent needs an API key (`aicordon login` or AICORDON_API_KEY);
-without one its column says so and the script still runs.
+Intent needs an API key (`aicordon login` or AICORDON_API_KEY). Without it the Intent column shows
+"no key" and Picket still runs.
 """
 from __future__ import annotations
 

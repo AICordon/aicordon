@@ -1,7 +1,7 @@
-# Picket — the fast detector
+# Picket
 
-The local half of [`aicordon`](https://github.com/AICordon/aicordon): a signature rule, no model, no
-network. The package page has both detectors side by side; this page is Picket in full.
+Picket is the local detector in [`aicordon`](https://github.com/AICordon/aicordon): a signature rule,
+no model, no network. Both detectors are compared in the README.
 
 **Catch obvious prompt injections before they reach your model.**
 
