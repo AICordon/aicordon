@@ -16,6 +16,7 @@ Two detectors, one interface. Code written against one works with the other unch
 | false alarms | **~1 in 1 000** clean documents | **~1 in 10 000** clean documents (FPR 1e-4) |
 | catches | the obvious: textbook phrasing an attacker did not bother to hide | instructions written as ordinary prose, in any wording, hidden in markup |
 | needs | nothing: no model, no network, no key | an API key |
+| your text | **never leaves the process**: Picket has no network code | **is sent to the AI Cordon API** to be judged |
 | details | [docs/picket.md](https://github.com/AICordon/aicordon/blob/main/docs/picket.md) | [docs/intent.md](https://github.com/AICordon/aicordon/blob/main/docs/intent.md) |
 
 Use Picket where a heavier check cannot go at all: a whole corpus, an ingest path, a mail gateway.

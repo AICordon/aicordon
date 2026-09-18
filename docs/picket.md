@@ -130,8 +130,9 @@ Guarding both ends means two detectors, and each `load()` builds its own engine:
 ## Where it belongs, and why nothing leaves the process
 
 The check runs where your code runs. No network call, no model download, no account, no key, no
-telemetry — the package contains no network code at all, so the document you check has nowhere to be
-sent even by accident. Mail, tickets, contracts, patient records, anything under GDPR: the question
+telemetry — Picket contains no network code at all, so the document you check has nowhere to be sent
+even by accident. The Intent client ships in the same distribution as a separate module; Picket
+never imports it. Mail, tickets, contracts, patient records, anything under GDPR: the question
 "where does this text go" has one answer, and it is "nowhere".
 
 That property is worth more on the typed end than anywhere else. A jailbreak filter sits on every
