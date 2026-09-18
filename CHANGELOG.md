@@ -21,6 +21,13 @@ has: `load`, `check`, `check_all`, `reports`, the same `Report` and `Finding`.
   rejected key or an unpaid account raises `EngineUnavailable`; 429 and 5xx are retried with backoff.
 - Standard library only: the package still has no dependencies.
 
+### With a key, `aicordon <file>` asks which detector
+
+With an Intent key present, both products are ready, and the command without a product name no
+longer picks Picket on its own: in a terminal it asks, in a script it refuses and prints
+`aicordon picket …` / `aicordon intent …`. Silently choosing a detector for you is what the shell
+never does. Without a key nothing changes; scripts that name the product are unaffected.
+
 ### Docs
 
 `README.md` is now the page for both detectors. Picket's full description moved to `docs/picket.md`,
