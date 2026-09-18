@@ -141,7 +141,7 @@ document.
 
 What that means for a pipeline it sits in:
 
-- **Nothing leaves the process.** The package imports no HTTP client and opens no socket, and needs
+- **Nothing leaves the process.** The component imports no HTTP client and opens no socket, and needs
   no GPU and no key. The base is read once when the component warms up; one written to a layout this
   build does not know is refused rather than read as best it can. There is no telemetry to switch
   off.

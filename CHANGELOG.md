@@ -1,5 +1,42 @@
 # Changelog
 
+## 1.3.0 — unreleased
+
+### Intent
+
+`aicordon.intent` is now a working client for the AI Cordon API. Same interface as Picket: `load`,
+`check`, `check_all`, `reports`, `Report`, `Finding`.
+
+    from aicordon import intent
+    det = intent.load()
+    rep = det.check(text)
+    a = det.assess(text)                  # score, spans, version
+
+- API key: `api_key=`, then `AICORDON_API_KEY`, then `~/.config/aicordon/credentials`.
+- `aicordon login` verifies and saves the key; `aicordon login --status`; `aicordon logout`.
+- API address: `base_url=` or `AICORDON_BASE_URL`.
+- Operating point: `fpr="1e-3" | "1e-4" | "1e-5"`, default `1e-4`.
+- `mode="ipi"` only; `mode="dpi"` and `--mode dpi` raise `UnsupportedMode`.
+- Texts too short to judge get no findings; `assess` returns `judged=False`.
+- Network errors, a rejected key and an unpaid account raise `EngineUnavailable`. 429 and 5xx are
+  retried.
+
+### Guards
+
+`InjectionGuard`, `TurnGuard` and `DialogueGuard` take `detector="picket"` (default), `"intent"` or a
+detector object. A `dpi` guard on Intent raises `UnsupportedMode`.
+
+### CLI
+
+With an Intent key present, `aicordon <file>` without a product name asks which detector to use, or
+exits with code 2 when there is no terminal. To keep the old behaviour, name the product:
+`aicordon picket <file>`.
+
+### Docs
+
+`README.md` covers both detectors. Picket docs moved to `docs/picket.md`; Intent docs are in
+`docs/intent.md`. `examples/compare.py` runs both detectors on five sample texts.
+
 ## 1.2.1 — 2026-09-10
 
 ### Modes

@@ -86,8 +86,8 @@ class TurnGuard(_Guard):
     detector_mode = "dpi"
     allowed_modes = NON_EDITING_MODES
 
-    def __init__(self, mode: str = PASSTHROUGH, meta_prefix: str = "dpi") -> None:
-        super().__init__(mode=mode, meta_prefix=meta_prefix)
+    def __init__(self, mode: str = PASSTHROUGH, meta_prefix: str = "dpi", detector: Any = "picket") -> None:
+        super().__init__(mode=mode, meta_prefix=meta_prefix, detector=detector)
 
 
 class DialogueGuard:
@@ -96,10 +96,12 @@ class DialogueGuard:
     :param mode: `passthrough` (the default), `drop` or `fail`, applied to the exchange as a whole.
     :param roles: role name to rule set, `ipi` or `dpi`. Defaults to `DEFAULT_ROLES`.
     :param meta_prefix: prefix for the metadata keys the wrapper attaches.
+    :param detector: `picket` (default), `intent`, or a detector object. Intent supports `ipi`
+        only: with a `dpi` role it raises `UnsupportedMode`.
     """
 
     def __init__(self, mode: str = PASSTHROUGH, roles: dict[str, str] | None = None,
-                 meta_prefix: str = "picket") -> None:
+                 meta_prefix: str = "picket", detector: Any = "picket") -> None:
         if mode not in NON_EDITING_MODES:
             raise ValueError(f"a dialogue is guarded in mode {NON_EDITING_MODES}, got {mode!r}")
         roles = dict(DEFAULT_ROLES if roles is None else roles)
@@ -109,12 +111,12 @@ class DialogueGuard:
         self._guards: dict[str, _Guard] = {}
         for role, rules in roles.items():
             if rules == "dpi":
-                self._guards[role] = TurnGuard(mode=mode, meta_prefix=meta_prefix)
+                self._guards[role] = TurnGuard(mode=mode, meta_prefix=meta_prefix, detector=detector)
             elif rules == "ipi":
                 # The same detector the ingest filter uses, held to this side's policy: material
                 # inside an exchange is still read with `ipi`, but a component that decides whether
                 # to answer does not get to rewrite what it was given.
-                self._guards[role] = InjectionGuard(mode=mode, meta_prefix=meta_prefix)
+                self._guards[role] = InjectionGuard(mode=mode, meta_prefix=meta_prefix, detector=detector)
             else:
                 raise ValueError(f"role {role!r}: rules must be 'ipi' or 'dpi', got {rules!r}")
 

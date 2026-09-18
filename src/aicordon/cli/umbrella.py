@@ -53,6 +53,7 @@ HELP = """  aicordon — indirect prompt injection (IPI) detectors by AI Cordon
 
   Commands: {commands}
   Products: {products}
+  Account:  aicordon login | logout  (the Intent API key)
 """
 
 
@@ -217,6 +218,15 @@ def main(argv=None) -> int:
     if not slots:
         print("no product is installed", file=sys.stderr)
         return EXIT_ENGINE
+
+    # Account commands are top-level, not per product: Picket has no key.
+    if argv and argv[0] in ("login", "logout"):
+        try:
+            from aicordon.intent import login as auth
+        except ImportError:
+            print("  login is for Intent, which is not installed", file=sys.stderr)
+            return EXIT_USAGE
+        return getattr(auth, argv[0])(argv[1:])
 
     names = {s.product.key for s in slots}
     if argv and argv[0] in ("-h", "--help", "help"):
