@@ -43,8 +43,9 @@ a.flagged, a.score, a.spans, a.version
 det = intent.load(fpr="1e-3")         # operating point: "1e-3", "1e-4" (default) or "1e-5"
 ```
 
-Intent supports mode `ipi` (text your code fetched: documents, pages, tool results). `mode="dpi"`
-(text a user typed) raises `intent.UnsupportedMode`; use Picket for it.
+Intent works in mode `ipi` (text your code fetched: documents, pages, tool results), which is the
+default: `mode` does not need to be passed. `mode="dpi"` (text a user typed) raises
+`intent.UnsupportedMode`; use Picket for it.
 
 The guards take Intent the same way:
 
