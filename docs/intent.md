@@ -43,6 +43,20 @@ a.flagged, a.score, a.spans, a.version
 det = intent.load(fpr="1e-3")         # operating point: "1e-3", "1e-4" (default) or "1e-5"
 ```
 
+Intent supports mode `ipi` (text your code fetched: documents, pages, tool results). `mode="dpi"`
+(text a user typed) raises `intent.UnsupportedMode`; use Picket for it.
+
+The guards take Intent the same way:
+
+```python
+from aicordon.guard import InjectionGuard
+
+guard = InjectionGuard(detector="intent")      # default: "picket"
+```
+
+`TurnGuard(detector="intent")` and `DialogueGuard(detector="intent")` with a `dpi` role raise
+`UnsupportedMode`.
+
 Use `check` in applications. Use `assess` for benchmarks: it returns a score for every document,
 including those without findings.
 

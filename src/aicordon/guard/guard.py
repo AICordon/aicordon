@@ -166,7 +166,14 @@ class _Guard:
     allowed_modes: tuple[str, ...] = MODES
 
     def __init__(self, mode: str, meta_prefix: str, blank_char: str = "*",
-                 mask_with: str = "[prompt injection removed]") -> None:
+                 mask_with: str = "[prompt injection removed]", detector: Any = "picket") -> None:
+        if isinstance(detector, str):
+            if detector == "intent":
+                from aicordon.intent.detector import check_mode
+                check_mode(self.detector_mode)          # UnsupportedMode for a dpi guard, at once
+            elif detector != "picket":
+                raise ValueError(f"detector must be 'picket', 'intent' or a detector object, got {detector!r}")
+        self.detector = detector
         if mode not in self.allowed_modes:
             # Whatever was asked for, the answer is the list of what there is. A caller who typed a
             # mode that does not exist should not have to go looking for the ones that do.
@@ -182,7 +189,14 @@ class _Guard:
         self._det: Any = None
 
     def warm_up(self) -> None:
-        if self._det is None:
+        if self._det is not None:
+            return
+        if not isinstance(self.detector, str):
+            self._det = self.detector                      # a ready detector object
+        elif self.detector == "intent":
+            from aicordon import intent
+            self._det = intent.load(mode=self.detector_mode)
+        else:
             from aicordon import picket
 
             # Raw spans, not the padded ones the CLI prints: the padding exists to make a span
@@ -257,7 +271,7 @@ class _Guard:
 
 
 class InjectionGuard(_Guard):
-    """Material: text the model is to work on. Reads with Picket's `ipi` rules.
+    """Material: text the model is to work on. Reads in mode `ipi`, with Picket (default) or Intent.
 
     It may rewrite the text, but only when a mode says so. The default, `passthrough`, does not.
 
@@ -269,9 +283,9 @@ class InjectionGuard(_Guard):
     allowed_modes = MODES
 
     def __init__(self, mode: str = PASSTHROUGH, meta_prefix: str = "ipi", blank_char: str = "*",
-                 mask_with: str = "[prompt injection removed]") -> None:
+                 mask_with: str = "[prompt injection removed]", detector: Any = "picket") -> None:
         super().__init__(mode=mode, meta_prefix=meta_prefix, blank_char=blank_char,
-                         mask_with=mask_with)
+                         mask_with=mask_with, detector=detector)
 
 
 def _to_boundary(text: str, lo: int, hi: int) -> tuple[int, int]:

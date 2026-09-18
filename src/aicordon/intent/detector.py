@@ -32,6 +32,11 @@ from . import credentials as cred
 DEFAULT_ENDPOINT = cred.DEFAULT_BASE_URL          # kept under the name the stub exported
 DEFAULT_DETECTOR = "intent"
 THREAT = "IPI/Intent"
+MODES = ("ipi",)
+
+
+class UnsupportedMode(ValueError):
+    """Intent reads material (`ipi`) only. Typed requests (`dpi`) are Picket's."""
 _RETRY = frozenset({429, 500, 502, 503, 504})
 
 LIMITS = (
@@ -83,7 +88,7 @@ class Detector(BaseDetector):
     """
 
     name = "intent"
-    title = "AI Cordon Intent"
+    title = "Intent"
     version = "api"                  # replaced by the version the service reports on its first answer
     requires = frozenset({"api_key", "network"})
     batch = 32
@@ -92,7 +97,10 @@ class Detector(BaseDetector):
 
     def __init__(self, api_key: str | None = None, base_url: str | None = None, *,
                  detector: str = DEFAULT_DETECTOR, timeout: float = 60.0, max_retries: int = 5,
-                 workers: int = 4, fpr: str | float | None = None, endpoint: str | None = None) -> None:
+                 workers: int = 4, fpr: str | float | None = None, mode: str = "ipi",
+                 endpoint: str | None = None) -> None:
+        check_mode(mode)
+        self._mode = mode
         self._key = cred.find_key(api_key)
         self._key_source = cred.key_source(api_key)
         self._base = cred.base_url(base_url or endpoint)
@@ -120,7 +128,7 @@ class Detector(BaseDetector):
             raise EngineUnavailable("no API key", hint=cred.NO_KEY_HINT)
 
     def describe(self) -> dict:
-        return {"endpoint": self._base, "detector": self._detector,
+        return {"endpoint": self._base, "detector": self._detector, "mode": self._mode,
                 "operating point": f"FPR {self._fpr}" if self._fpr else "the service default",
                 "key": f"{cred.mask(self._key)} ({self._key_source})" if self._key else "not found",
                 "version": self.version}
@@ -206,6 +214,15 @@ class Detector(BaseDetector):
                 time.sleep(wait if wait is not None else min(30.0, 2 ** attempt) * (0.5 + random.random()))
         raise EngineUnavailable(f"no answer from {self._base} after {self._retries + 1} attempts: {last}",
                                 hint="Check the network and the service status, then retry.")
+
+
+def check_mode(mode: str) -> None:
+    """Raise `UnsupportedMode` for `dpi`, `ValueError` for anything that is not a mode."""
+    if mode == "dpi":
+        raise UnsupportedMode("Intent does not support mode 'dpi' (typed requests); it reads material, "
+                              "mode 'ipi'. Use Picket for dpi.")
+    if mode not in MODES:
+        raise ValueError(f"unknown mode {mode!r}: Intent supports 'ipi' only")
 
 
 def _error_body(e: urllib.error.HTTPError) -> str:

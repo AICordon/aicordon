@@ -23,7 +23,7 @@ from .credentials import (BASE_URL_ENV, CONFIG, CREDENTIALS, DEFAULT_BASE_URL, E
                           find_key, has_key, save_key)
 
 __all__ = [
-    "Detector", "load", "Assessment", "Span", "DEFAULT_ENDPOINT", "PRODUCT",
+    "Detector", "load", "Assessment", "Span", "UnsupportedMode", "DEFAULT_ENDPOINT", "PRODUCT",
     "find_key", "has_key", "save_key", "delete_key",
     "ENV_VAR", "BASE_URL_ENV", "DEFAULT_BASE_URL", "CREDENTIALS", "CONFIG",
     "Document", "Finding", "Evidence", "Report", "Severity",
@@ -34,7 +34,7 @@ __all__ = [
 # products have to behave the same way down to this. The key lookup stays eager — `credentials` is
 # what decides whether this product is available at all, and it reads at most one small file.
 
-_LAZY = ("Detector", "load", "Assessment", "Span", "DEFAULT_ENDPOINT")
+_LAZY = ("Detector", "load", "Assessment", "Span", "UnsupportedMode", "DEFAULT_ENDPOINT")
 
 
 def __getattr__(name: str):
@@ -47,6 +47,16 @@ def __getattr__(name: str):
 
 def __dir__() -> list[str]:
     return sorted(set(globals()) | set(_LAZY))
+
+
+def _mode(v: str) -> str:
+    """Checked at parse time, as in Picket: `--mode dpi` fails with one line, not a traceback."""
+    import argparse
+    if v == "dpi":
+        raise argparse.ArgumentTypeError("Intent does not support mode 'dpi'; use Picket for typed requests")
+    if v != "ipi":
+        raise argparse.ArgumentTypeError(f"unknown mode {v!r}: Intent supports 'ipi' only")
+    return v
 
 
 def _build(**kw):
@@ -77,5 +87,7 @@ PRODUCT = Product(
                help=f"API key (otherwise {ENV_VAR}, then `aicordon login`)"),
         Option(flags=("--base-url",), dest="base_url", metavar="URL",
                help=f"API address (otherwise {BASE_URL_ENV}, then {DEFAULT_BASE_URL})"),
+        Option(flags=("--mode",), dest="mode", metavar="ipi", type=_mode, default="ipi",
+               help="ipi: data your code fetched (the only mode; dpi is not supported)"),
     ),
 )

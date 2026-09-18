@@ -752,6 +752,31 @@ def test_intent_client() -> None:
             check("no network raises EngineUnavailable, not an empty report", True)
         check("the key is never shown whole", "aig_test_key_0001" not in repr(det) + str(det.describe()))
 
+        # Modes: Intent reads material (ipi); dpi raises UnsupportedMode, in the library and the CLI.
+        check("intent accepts mode ipi", intent.load(api_key="aig_x", mode="ipi") is not None)
+        try:
+            intent.load(api_key="aig_x", mode="dpi")
+            check("intent refuses mode dpi with UnsupportedMode", False, "no exception")
+        except intent.UnsupportedMode:
+            check("intent refuses mode dpi with UnsupportedMode", True)
+        code, _out, err = run(["intent", "scan", "--mode", "dpi", "--text", CLEAN])
+        check("`intent scan --mode dpi` fails with one line", code == 2 and "not support" in err,
+              f"{code} {err[-200:]}")
+
+        from aicordon.guard import DialogueGuard, InjectionGuard, TurnGuard
+        g = InjectionGuard(detector=intent.load(api_key="aig_test_key_0001", base_url=url))
+        check("InjectionGuard runs on Intent", g.inspect(text).flagged and g.base_version == "v9")
+        check("InjectionGuard still defaults to Picket", InjectionGuard().detector == "picket")
+        for name, make in (("TurnGuard", lambda: TurnGuard(detector="intent")),
+                           ("DialogueGuard with a dpi role", lambda: DialogueGuard(detector="intent"))):
+            try:
+                make()
+                check(f"{name} on Intent raises UnsupportedMode", False, "no exception")
+            except intent.UnsupportedMode:
+                check(f"{name} on Intent raises UnsupportedMode", True)
+        check("DialogueGuard on Intent with ipi roles only is fine",
+              DialogueGuard(detector="intent", roles={"tool": "ipi"}) is not None)
+
         old = (cred.CREDENTIALS, os.environ.pop(cred.ENV_VAR, None))
         with tempfile.TemporaryDirectory() as tmp:
             cred.CREDENTIALS = Path(tmp) / "aicordon" / "credentials"

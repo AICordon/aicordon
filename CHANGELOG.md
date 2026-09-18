@@ -16,9 +16,15 @@
 - `aicordon login` verifies and saves the key; `aicordon login --status`; `aicordon logout`.
 - API address: `base_url=` or `AICORDON_BASE_URL`.
 - Operating point: `fpr="1e-3" | "1e-4" | "1e-5"`, default `1e-4`.
+- `mode="ipi"` only; `mode="dpi"` and `--mode dpi` raise `UnsupportedMode`.
 - Texts too short to judge get no findings; `assess` returns `judged=False`.
 - Network errors, a rejected key and an unpaid account raise `EngineUnavailable`. 429 and 5xx are
   retried.
+
+### Guards
+
+`InjectionGuard`, `TurnGuard` and `DialogueGuard` take `detector="picket"` (default), `"intent"` or a
+detector object. A `dpi` guard on Intent raises `UnsupportedMode`.
 
 ### CLI
 
