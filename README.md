@@ -53,10 +53,10 @@ A report lists findings with their positions. No findings does not mean no injec
 ```text
 text                         Picket (local rule)              Intent (API)
 01-obvious-email.txt         alarm  IPI/Secret.Reveal.C       alarm  score 0.98
-02-support-ticket.txt        —                                alarm  score 0.97
+02-support-ticket.txt        —                                alarm  score 0.98
 03-release-notes.html        —                                alarm  score 0.99
-04-warning-question.txt      —                                —      score 0.52
-05-quarterly-report.txt      —                                —      score 0.03
+04-warning-question.txt      —                                —      score 0.40
+05-quarterly-report.txt      —                                —      score 0.11
 ```
 
 Both flag 01. Texts 02 and 03 contain no known phrasing, so only Intent flags them. Text 04 is an
