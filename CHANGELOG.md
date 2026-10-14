@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Intent
+
+- `Assessment` carries `raw_score` and `raw_threshold`. Since Intent 2.1.1 the API's `score` is a calibrated
+  probability with plateaus; the detector's own score is `raw_score`, and the verdicts are taken on it. Build your
+  own thresholds and AUC on `raw_score` (equal probabilities tie). Both are `None` when the service does not send
+  them.
+
 ## 1.3.0 — 2026-09-30
 
 ### Intent

@@ -54,6 +54,11 @@ class Span:
     p: float                         # the detector's probability for this fragment
 
 
+def _num(v) -> float | None:
+    """A number from the answer, or None: older services do not send raw_score / raw_threshold."""
+    return None if v is None else float(v)
+
+
 @dataclass(frozen=True)
 class Assessment:
     """The API answer for one document. `flagged` is the service's decision at its threshold."""
@@ -61,8 +66,10 @@ class Assessment:
     doc_id: str
     judged: bool
     flagged: bool = False
-    score: float | None = None
+    score: float | None = None                          # probability of an injection (calibrated raw_score)
     threshold: float | None = None
+    raw_score: float | None = None                      # the detector's own score; verdicts are taken on it
+    raw_threshold: float | None = None                  # the threshold on the raw_score scale (None if the client set one)
     spans: tuple[Span, ...] = ()
     verdicts: dict = field(default_factory=dict)        # operating point -> decision, e.g. "1e-04"
     false_alarm_rate: float | None = None
@@ -73,11 +80,13 @@ class Assessment:
     def from_api(cls, doc_id: str, a: dict) -> "Assessment":
         if a.get("scored") is False or a.get("score") is None:
             return cls(doc_id, judged=False, reason=a.get("reason") or "not_scored",
-                       threshold=a.get("threshold"), version=a.get("version") or "")
+                       threshold=a.get("threshold"), raw_threshold=_num(a.get("raw_threshold")),
+                       version=a.get("version") or "")
         spans = tuple(Span(int(f["span"][0]), int(f["span"][1]), float(f.get("p", a["score"])))
                       for f in a.get("flagged") or () if f.get("span"))
         return cls(doc_id, judged=True, flagged=bool(a.get("is_injection")), score=float(a["score"]),
-                   threshold=a.get("threshold"), spans=spans, verdicts=a.get("verdicts") or {},
+                   threshold=a.get("threshold"), raw_score=_num(a.get("raw_score")),
+                   raw_threshold=_num(a.get("raw_threshold")), spans=spans, verdicts=a.get("verdicts") or {},
                    false_alarm_rate=a.get("false_alarm_rate"), version=a.get("version") or "")
 
 
